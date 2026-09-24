@@ -1,15 +1,18 @@
 package com.re.travelokahotelbookingservice.controller;
 
 import com.re.travelokahotelbookingservice.dto.request.LoginRequest;
+import com.re.travelokahotelbookingservice.dto.request.LogoutRequest;
 import com.re.travelokahotelbookingservice.dto.request.RefreshTokenRequest;
 import com.re.travelokahotelbookingservice.dto.request.UserRegisterRequest;
 import com.re.travelokahotelbookingservice.dto.response.ApiResponse;
 import com.re.travelokahotelbookingservice.dto.response.LoginResponse;
 import com.re.travelokahotelbookingservice.dto.response.RefreshTokenResponse;
 import com.re.travelokahotelbookingservice.dto.response.UserRegisterResponse;
-import com.re.travelokahotelbookingservice.serivce.AuthService;
+import com.re.travelokahotelbookingservice.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,6 +43,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<RefreshTokenResponse>> responseToken(@Valid @RequestBody RefreshTokenRequest request) {
         RefreshTokenResponse refreshTokenResponse = authService.handleRefreshToken(request);
         ApiResponse<RefreshTokenResponse> apiResponse = new ApiResponse<>(200, "SUCCESS", refreshTokenResponse);
+        return ResponseEntity.ok().body(apiResponse);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request, @RequestBody @Valid LogoutRequest logoutRequest) {
+        authService.handleLogout(request, logoutRequest.getRefreshToken());
+        ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", null);
         return ResponseEntity.ok().body(apiResponse);
     }
 }

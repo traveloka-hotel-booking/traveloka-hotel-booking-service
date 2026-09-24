@@ -1,4 +1,4 @@
-package com.re.travelokahotelbookingservice.serivce.impl;
+package com.re.travelokahotelbookingservice.service.impl;
 
 import com.re.travelokahotelbookingservice.dto.UserDto;
 import com.re.travelokahotelbookingservice.dto.request.LoginRequest;
@@ -8,14 +8,17 @@ import com.re.travelokahotelbookingservice.dto.response.LoginResponse;
 import com.re.travelokahotelbookingservice.dto.response.RefreshTokenResponse;
 import com.re.travelokahotelbookingservice.dto.response.UserRegisterResponse;
 import com.re.travelokahotelbookingservice.entity.RefreshToken;
+import com.re.travelokahotelbookingservice.entity.TokenBlackList;
 import com.re.travelokahotelbookingservice.entity.User;
-import com.re.travelokahotelbookingservice.exeption.BusinessException;
-import com.re.travelokahotelbookingservice.exeption.EmailAlreadyExistsException;
+import com.re.travelokahotelbookingservice.exception.BusinessException;
+import com.re.travelokahotelbookingservice.exception.EmailAlreadyExistsException;
 import com.re.travelokahotelbookingservice.mapper.UserMapper;
 import com.re.travelokahotelbookingservice.repository.RefreshTokenRepository;
+import com.re.travelokahotelbookingservice.repository.TokenBlackListRepository;
 import com.re.travelokahotelbookingservice.repository.UserRepository;
 import com.re.travelokahotelbookingservice.security.TokenProvider;
-import com.re.travelokahotelbookingservice.serivce.AuthService;
+import com.re.travelokahotelbookingservice.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -38,6 +41,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final TokenProvider tokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenBlackListRepository tokenBlackListRepository;
 
     @Value("${jwt.accessTokenExpiration}")
     private Long accessTokenExpiration;
@@ -119,5 +123,27 @@ public class AuthServiceImpl implements AuthService {
                 .tokenType("Bearer")
                 .build();
 
+    }
+
+    @Transactional
+    @Override
+    public void handleLogout(HttpServletRequest request, String refreshToken) {
+
+        String authorization = request.getHeader("Authorization");
+
+        if(authorization == null || !authorization.startsWith("Bearer ")) {
+            throw new RuntimeException("Access token is missing");
+        }
+
+        String accessToken = authorization.substring(7);
+        Instant expDate = tokenProvider.getExpiryDate(accessToken);
+
+        TokenBlackList tokenBlackList = TokenBlackList.builder()
+                .accessToken(accessToken)
+                .expDate(expDate)
+                .build();
+        tokenBlackListRepository.save(tokenBlackList);
+        refreshTokenRepository.findByRefreshToken(refreshToken)
+                .ifPresent(refreshTokenRepository::delete);
     }
 }
