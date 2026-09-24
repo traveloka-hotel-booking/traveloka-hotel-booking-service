@@ -1,16 +1,14 @@
-package com.re.travelokahotelbookingservice.exeption.handle;
+package com.re.travelokahotelbookingservice.exception.handle;
 
 import com.re.travelokahotelbookingservice.dto.response.ApiResponse;
-import com.re.travelokahotelbookingservice.exeption.BusinessException;
-import com.re.travelokahotelbookingservice.exeption.EmailAlreadyExistsException;
+import com.re.travelokahotelbookingservice.exception.BusinessException;
+import com.re.travelokahotelbookingservice.exception.EmailAlreadyExistsException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestControllerAdvice
