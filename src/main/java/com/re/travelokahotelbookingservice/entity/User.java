@@ -1,28 +1,45 @@
 package com.re.travelokahotelbookingservice.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "users")
 public class User {
 
     @Id
+    @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "username", unique = true)
     private String username;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "email", unique = true)
     private String email;
 
+    @Column(name = "password")
     private String password;
+
+    @Column(name = "fullName")
+    private String fullName;
+
+    @Column(name = "phone")
     private String phone;
-    private String role; // ROLE_ADMIN, ROLE_CUSTOMER
-    private boolean isEnabled;
 
+    @Enumerated(EnumType.STRING)
+    private Role role;
+
+    @Column(name = "is_enabled")
+    private Boolean isEnabled;
+
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
-
-    // getters, setters
 }
