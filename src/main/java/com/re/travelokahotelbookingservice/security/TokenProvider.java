@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
 import java.util.Date;
 
 @Slf4j
@@ -76,5 +77,13 @@ public class TokenProvider {
                 .parseSignedClaims(token)
                 .getPayload();
         return claims.getSubject();
+    }
+
+    public Instant getExpiryDate(String accessToken) {
+        Claims claims = Jwts.parser().verifyWith(key)
+                .build()
+                .parseSignedClaims(accessToken)
+                .getPayload();
+        return claims.getExpiration().toInstant();
     }
 }

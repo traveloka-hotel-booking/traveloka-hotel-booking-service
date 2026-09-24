@@ -1,4 +1,4 @@
-package com.re.travelokahotelbookingservice.exeption;
+package com.re.travelokahotelbookingservice.exception;
 
 public class EmailAlreadyExistsException extends RuntimeException{
     public EmailAlreadyExistsException(String email) {
