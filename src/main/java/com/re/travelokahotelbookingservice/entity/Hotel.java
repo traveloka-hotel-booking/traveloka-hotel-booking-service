@@ -1,8 +1,14 @@
 package com.re.travelokahotelbookingservice.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "hotels")
 public class Hotel {
@@ -29,5 +35,10 @@ public class Hotel {
 
     private LocalDateTime createdAt;
 
-    // getters, setters
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+    }
 }
