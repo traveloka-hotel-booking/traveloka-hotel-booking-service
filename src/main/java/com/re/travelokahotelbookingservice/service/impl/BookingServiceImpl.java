@@ -41,20 +41,22 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponseDto createBooking(BookingRequestDto request, String currentUsername) {
 
-        // 1. Lấy user từ username trong JWT
-        User user = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        // 1. Lấy user từ email hoặc username trong JWT
+        User user = userRepository.findByEmail(currentUsername)
+                .or(() -> userRepository.findByUsername(currentUsername))
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + currentUsername));
 
         // 2. Lấy room
         Room room = roomRepository.findById(request.getRoomId())
-                .orElseThrow(() -> new EntityNotFoundException("Room not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Room not found with ID: " + request.getRoomId()));
 
         // 3. Kiểm tra số khách không vượt quá maxGuests
         if (request.getNumberOfGuests() > room.getMaxGuests()) {
-            throw new IllegalArgumentException("Number of guests exceeds room capacity");
+            throw new IllegalArgumentException("Number of guests (" + request.getNumberOfGuests() 
+                    + ") exceeds room capacity (" + room.getMaxGuests() + ")");
         }
 
-        // 4. Kiểm tra phòng còn trống (JPQL chống chồng lấp)
+        // 4. Kiểm tra phòng còn trống (JPQL chống chồng lấp theo ngày)
         List<Booking> overlapping = bookingRepository.findOverlappingBookings(
                 room.getId(),
                 request.getCheckIn(),
@@ -62,13 +64,13 @@ public class BookingServiceImpl implements BookingService {
         );
 
         if (!overlapping.isEmpty()) {
-            throw new RoomNotAvailableException("Phòng đã được đặt trong thời gian này");
+            throw new RoomNotAvailableException("Phòng đã được đặt trong khoảng thời gian này");
         }
 
         // 5. Tính số đêm
         long nights = ChronoUnit.DAYS.between(request.getCheckIn(), request.getCheckOut());
         if (nights <= 0) {
-            throw new IllegalArgumentException("checkOut must be after checkIn");
+            throw new IllegalArgumentException("Check-out date must be after check-in date");
         }
 
         BigDecimal totalPrice = room.getPricePerNight()
@@ -87,11 +89,11 @@ public class BookingServiceImpl implements BookingService {
 
         bookingRepository.save(booking);
 
-        // 7. Cập nhật trạng thái phòng -> BOOKED
-        room.setStatus("BOOKED");
-        roomRepository.save(room);
+        // Lưu ý: Không cập nhật cứng room.setStatus("BOOKED") vào bảng rooms,
+        // vì phòng chỉ bận trong khoảng ngày [checkIn - checkOut].
+        // Tính khả dụng của phòng được quản lý tự động bởi findOverlappingBookings().
 
-        // 8. Trả về DTO
+        // 7. Trả về DTO
         BookingResponseDto response = new BookingResponseDto();
         response.setBookingId(booking.getId());
         response.setTotalPrice(totalPrice);

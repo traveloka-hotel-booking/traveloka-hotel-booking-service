@@ -83,7 +83,7 @@ public class AuthServiceImpl implements AuthService {
         UserDto userDto = userMapper.toUserLogin(principal);
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not fount"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         refreshTokenRepository.deleteByUserId(user.getId());
         RefreshToken refreshToken = RefreshToken.builder()
