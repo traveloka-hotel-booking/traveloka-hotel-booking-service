@@ -1,7 +1,8 @@
 package com.re.travelokahotelbookingservice.config;
 
 import com.re.travelokahotelbookingservice.security.AuthenticationFilter;
-import jakarta.servlet.http.HttpServletResponse;
+import com.re.travelokahotelbookingservice.security.ForbiddenEntryPoint;
+import com.re.travelokahotelbookingservice.security.UnauthorizedEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,6 +10,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -27,9 +29,10 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @EnableWebSecurity
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
-
     private final UserDetailsService userDetailsService;
     private final AuthenticationFilter authenticationFilter;
+    private final ForbiddenEntryPoint forbiddenEntryPoint;
+    private final UnauthorizedEntryPoint unauthorizedEntryPoint;
     private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
@@ -42,36 +45,29 @@ public class SecurityConfig {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
+
         return authProvider;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // FIX BUG-02: Bật CORS đúng chuẩn, dùng lại CorsConfig bean đã có
-                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                // FIX BUG-03: Khai báo Stateless — không tạo Session thừa
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // FIX BUG-04: Trả về 401 JSON đúng chuẩn khi token lỗi/hết hạn
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write(
-                                    "{\"status\":401,\"message\":\"Unauthorized — Token không hợp lệ hoặc đã hết hạn\"}"
-                            );
-                        })
-                )
-                // FIX BUG-05: Khai báo rõ ràng quyền truy cập từng nhóm API
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/auth/login",
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/refresh").permitAll()
+                        .requestMatchers("/api/v1/auth/logout").authenticated()
                         .requestMatchers("/api/v1/customer/**").hasAuthority("ROLE_CUSTOMER")
                         .requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated()
                 )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(unauthorizedEntryPoint)
+                        .accessDeniedHandler(forbiddenEntryPoint))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
