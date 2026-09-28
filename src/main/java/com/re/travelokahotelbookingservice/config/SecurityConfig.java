@@ -52,13 +52,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(Customizer.withDefaults())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/auth/login",
                                 "/api/v1/auth/register",
-                                "/api/v1/auth/refresh").permitAll()
+                                "/api/v1/auth/refresh",
+                                "/error").permitAll()
                         .requestMatchers("/api/v1/auth/logout").authenticated()
                         .requestMatchers("/api/v1/customer/**").hasAuthority("ROLE_CUSTOMER")
                         .requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN")
