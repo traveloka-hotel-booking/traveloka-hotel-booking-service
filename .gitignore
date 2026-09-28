@@ -35,3 +35,8 @@ out/
 
 ### VS Code ###
 .vscode/
+### Sensitive Files & Local Config ###
+src/main/resources/application.properties
+
+### macOS files ###
+.DS_Store
