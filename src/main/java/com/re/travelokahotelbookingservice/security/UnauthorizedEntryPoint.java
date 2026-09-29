@@ -30,7 +30,7 @@ public class UnauthorizedEntryPoint implements AuthenticationEntryPoint {
             body.put("error", "Unauthorized");
             body.put("message", "Bạn chưa đăng nhập hoặc token không hợp lệ");
             body.put("status", 401);
-            body.put("timestamp", LocalDateTime.now());
+            body.put("timestamp", LocalDateTime.now().toString());
 
             new ObjectMapper().writeValue(response.getOutputStream(), body);
     }
