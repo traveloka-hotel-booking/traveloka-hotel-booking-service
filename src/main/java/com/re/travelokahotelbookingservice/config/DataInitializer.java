@@ -46,10 +46,10 @@ public class DataInitializer implements CommandLineRunner {
                     "ON DUPLICATE KEY UPDATE name = VALUES(name)";
             jdbcTemplate.execute(insertRoom102);
 
-            // Nạp Phòng ID: 103 - Khớp Frontend
+            // Nạp Phòng ID: 103 - Khớp Frontend (Family Suite Gia Đình)
             String insertRoom103 = "INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
-                    "VALUES (103, 1, 'Phòng Tổng Thống Hoàng Gia (Presidential Suite)', 4, 5500000.00, 'AVAILABLE') " +
-                    "ON DUPLICATE KEY UPDATE name = VALUES(name)";
+                    "VALUES (103, 1, 'Phòng Family Suite Gia Đình', 4, 3200000.00, 'AVAILABLE') " +
+                    "ON DUPLICATE KEY UPDATE name = VALUES(name), price_per_night = VALUES(price_per_night)";
             jdbcTemplate.execute(insertRoom103);
 
             log.info("Initialized sample Hotel ID 1 and Room IDs 101, 102, 103 successfully.");

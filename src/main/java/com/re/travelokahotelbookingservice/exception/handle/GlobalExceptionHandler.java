@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now());
+        body.put("timestamp", LocalDateTime.now().toString());
         body.put("status", HttpStatus.CONFLICT.value());
         body.put("error", HttpStatus.CONFLICT.getReasonPhrase());
         body.put("message", ex.getMessage());
