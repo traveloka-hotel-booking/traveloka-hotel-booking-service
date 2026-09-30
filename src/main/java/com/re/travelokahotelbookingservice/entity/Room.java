@@ -28,6 +28,6 @@ public class Room {
     @Column(name = "price_per_night", nullable = false)
     private BigDecimal pricePerNight;
 
-    @Column(name = "status", nullable = false)
-    private String status; // AVAILABLE, BOOKED, MAINTENANCE
+        @Column(name = "status", nullable = false)
+        private String status; // AVAILABLE, BOOKED, MAINTENANCE
 }

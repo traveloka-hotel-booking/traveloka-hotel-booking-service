@@ -3,7 +3,7 @@ package com.re.travelokahotelbookingservice.mapper.impl;
 import com.re.travelokahotelbookingservice.dto.UserDto;
 import com.re.travelokahotelbookingservice.dto.request.UserRegisterRequest;
 import com.re.travelokahotelbookingservice.dto.response.UserRegisterResponse;
-import com.re.travelokahotelbookingservice.entity.Role;
+import com.re.travelokahotelbookingservice.entity.enums.Role;
 import com.re.travelokahotelbookingservice.entity.User;
 import com.re.travelokahotelbookingservice.mapper.UserMapper;
 import com.re.travelokahotelbookingservice.security.UserDetailsImpl;

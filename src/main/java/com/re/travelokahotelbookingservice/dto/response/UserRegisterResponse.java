@@ -1,6 +1,6 @@
 package com.re.travelokahotelbookingservice.dto.response;
 
-import com.re.travelokahotelbookingservice.entity.Role;
+import com.re.travelokahotelbookingservice.entity.enums.Role;
 import lombok.*;
 
 @Getter
