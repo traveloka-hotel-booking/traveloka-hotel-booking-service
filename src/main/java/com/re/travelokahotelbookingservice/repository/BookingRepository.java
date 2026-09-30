@@ -14,7 +14,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("""
         SELECT b FROM Booking b
         WHERE b.room.id = :roomId
-          AND b.status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN')
+          AND b.status IN (
+              com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING,
+              com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CONFIRMED,
+              com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CHECKED_IN
+          )
           AND (
                 (b.checkIn <= :checkOut AND b.checkOut >= :checkIn)
               )

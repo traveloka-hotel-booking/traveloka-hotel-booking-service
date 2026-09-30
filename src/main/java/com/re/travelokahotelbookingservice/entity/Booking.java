@@ -1,20 +1,14 @@
 package com.re.travelokahotelbookingservice.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Column;
+import com.re.travelokahotelbookingservice.entity.enums.BookingStatus;
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
-
-
-import lombok.Data;
 
 @Data
 @Entity
@@ -45,8 +39,14 @@ public class Booking {
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private String status; // PENDING, CONFIRMED, ...
+    private BookingStatus status; // PENDING, CONFIRMED, CHECKED_IN, COMPLETED, CANCELLED
+
+    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Payment payment;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

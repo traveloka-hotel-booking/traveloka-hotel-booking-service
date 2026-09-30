@@ -1,6 +1,6 @@
 package com.re.travelokahotelbookingservice.service.impl;
 
-import com.re.travelokahotelbookingservice.dto.BookingRequestDto;
+import com.re.travelokahotelbookingservice.dto.request.BookingRequestDto;
 import com.re.travelokahotelbookingservice.dto.BookingResponseDto;
 import com.re.travelokahotelbookingservice.entity.Booking;
 import com.re.travelokahotelbookingservice.entity.Room;
@@ -84,7 +84,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setCheckOut(request.getCheckOut());
         booking.setNumberOfGuests(request.getNumberOfGuests());
         booking.setTotalPrice(totalPrice);
-        booking.setStatus("PENDING");
+        booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING);
         booking.setCreatedAt(LocalDateTime.now());
 
         bookingRepository.save(booking);
@@ -97,7 +97,7 @@ public class BookingServiceImpl implements BookingService {
         BookingResponseDto response = new BookingResponseDto();
         response.setBookingId(booking.getId());
         response.setTotalPrice(totalPrice);
-        response.setStatus(booking.getStatus());
+        response.setStatus(booking.getStatus().name());
 
         return response;
     }

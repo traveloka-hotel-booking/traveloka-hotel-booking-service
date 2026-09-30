@@ -1,6 +1,6 @@
 package com.re.travelokahotelbookingservice.controller;
 
-import com.re.travelokahotelbookingservice.dto.BookingRequestDto;
+import com.re.travelokahotelbookingservice.dto.request.BookingRequestDto;
 import com.re.travelokahotelbookingservice.dto.BookingResponseDto;
 import com.re.travelokahotelbookingservice.service.BookingService;
 import org.springframework.http.HttpStatus;
