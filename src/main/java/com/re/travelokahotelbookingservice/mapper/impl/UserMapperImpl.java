@@ -57,6 +57,9 @@ public class UserMapperImpl implements UserMapper {
                     .username(userDetails.getUsername())
                     .email(userDetails.getEmail())
                     .fullName(userDetails.getFullName())
+                    .yob(userDetails.getYob())
+                    .gender(userDetails.getGender())
+                    .address(userDetails.getAddress())
                     .phone(userDetails.getPhone())
                     .role(role)
                     .isEnabled(userDetails.isEnabled())
@@ -64,5 +67,22 @@ public class UserMapperImpl implements UserMapper {
                     .build();
         }
         return null;
+    }
+
+    @Override
+    public UserDto fromUser(User user) {
+        return UserDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .yob(user.getYob())
+                .gender(user.getGender())
+                .address(user.getAddress())
+                .phone(user.getPhone())
+                .role(user.getRole())
+                .isEnabled(user.getIsEnabled())
+                .createdAt(user.getCreatedAt())
+                .build();
     }
 }
