@@ -4,7 +4,7 @@ server.port=8080
 # Cấu hình kết nối MySQL (Mỗi dev tự điền thông tin của mình)
 spring.datasource.url=jdbc:mysql://localhost:3306/traveloka-hotel-db
 spring.datasource.username=root
-spring.datasource.password=your_password_here
+spring.datasource.password=AVNS_1i8F_MfXso27EdEDA3X
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 
 spring.jpa.hibernate.ddl-auto=update
@@ -16,6 +16,6 @@ cloudinary.api-key=your_api_key
 cloudinary.api-secret=your_api_secret
 
 # JWT
-jwt.secret=your_jwt_secret_key_here
+jwt.secret=FJH87sd98ASD98as7d98ASD98as7d98ASD98as7d98ASD98as7d98ASD
 jwt.accessTokenExpiration=900000
 jwt.refreshTokenExpiration=604800000
