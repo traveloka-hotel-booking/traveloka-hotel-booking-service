@@ -1,5 +1,6 @@
 package com.re.travelokahotelbookingservice.entity;
 
+import com.re.travelokahotelbookingservice.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 

@@ -1,4 +1,4 @@
-package com.re.travelokahotelbookingservice.dto;
+package com.re.travelokahotelbookingservice.dto.request;
 
 import lombok.Data;
 import java.time.LocalDate;

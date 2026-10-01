@@ -58,6 +58,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/login",
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/refresh",
+                                "/api/v1/customer/payments/vnpay-callback",
                                 "/error").permitAll()
                         .requestMatchers("/api/v1/auth/logout").authenticated()
                         .requestMatchers("/api/v1/customer/**").hasAuthority("ROLE_CUSTOMER")
