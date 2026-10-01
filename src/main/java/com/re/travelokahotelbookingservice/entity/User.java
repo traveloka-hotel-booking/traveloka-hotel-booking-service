@@ -35,6 +35,15 @@ public class User {
     @Column(name = "phone")
     private String phone;
 
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    @Column(name = "gender")
+    private String gender;
+
+    @Column(name = "date_of_birth")
+    private String dateOfBirth;
+
     @Enumerated(EnumType.STRING)
     private Role role;
 
