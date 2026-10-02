@@ -4,7 +4,6 @@ import com.re.travelokahotelbookingservice.entity.enums.Gender;
 import com.re.travelokahotelbookingservice.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,7 +38,7 @@ public class User {
     private LocalDate yob;
 
     @Column(name = "gender")
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = GenderConverter.class)
     private Gender gender;
 
     @Column(name = "address", nullable = true)

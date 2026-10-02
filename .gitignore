@@ -38,5 +38,8 @@ out/
 ### Sensitive Files & Local Config ###
 src/main/resources/application.properties
 
+### Logs ###
+*.log
+
 ### macOS files ###
 .DS_Store
