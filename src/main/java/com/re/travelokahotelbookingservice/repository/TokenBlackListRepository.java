@@ -18,4 +18,5 @@ public interface TokenBlackListRepository extends JpaRepository<TokenBlackList, 
     @Transactional
     @Query("DELETE FROM TokenBlackList t WHERE t.expDate < :now")
     void deleteExpiredTokens(Instant now);
+
 }
