@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/hotels")
 @RequiredArgsConstructor
-public class HotelPublicController {
+public class HotelController {
 
     private final HotelService hotelService;
 

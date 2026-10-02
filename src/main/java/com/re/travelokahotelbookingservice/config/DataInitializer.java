@@ -41,6 +41,15 @@ public class DataInitializer implements CommandLineRunner {
                     "ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), is_enabled = true";
             jdbcTemplate.update(insertCustomerSql, customerPasswordHash);
 
+            String huuPasswordHash = passwordEncoder.encode("Huu123456");
+            String updateHuuSql = "UPDATE users SET password = ?, role = 'ROLE_ADMIN', is_enabled = true WHERE email = 'huutran0991@gmail.com'";
+            jdbcTemplate.update(updateHuuSql, huuPasswordHash);
+
+            try {
+                jdbcTemplate.execute("UPDATE users SET gender = 'MALE' WHERE gender = 'Nam' OR gender = 'nam'");
+                jdbcTemplate.execute("UPDATE users SET gender = 'FEMALE' WHERE gender = 'Nữ' OR gender = 'Nu' OR gender = 'nu'");
+            } catch (Exception ignored) {}
+
             log.info("Initialized default admin and customer demo accounts successfully.");
         } catch (Exception e) {
             log.warn("Notice during user seed initialization: {}", e.getMessage());
