@@ -1,8 +1,10 @@
 package com.re.travelokahotelbookingservice.entity;
 
+import com.re.travelokahotelbookingservice.entity.enums.Gender;
 import com.re.travelokahotelbookingservice.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -49,6 +51,9 @@ public class User {
     @Column(name = "role")
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
 
     @Column(name = "is_enabled")
     private Boolean isEnabled;

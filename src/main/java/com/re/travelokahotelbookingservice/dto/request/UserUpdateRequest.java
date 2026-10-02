@@ -1,6 +1,6 @@
 package com.re.travelokahotelbookingservice.dto.request;
 
-import com.re.travelokahotelbookingservice.entity.Gender;
+import com.re.travelokahotelbookingservice.entity.enums.Gender;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
@@ -17,7 +17,7 @@ public class UserUpdateRequest {
     private String fullName;
 
     @NotBlank(message = "Phone không được để trống")
-    @Pattern(regexp = "^(0|\\\\+84)(3|5|7|8|9)[0-9]{8}$",
+    @Pattern(regexp = "^(0|\\+84)(3|5|7|8|9)[0-9]{8}$",
             message = "Số điện thoại không hợp lệ")
     private String phone;
 

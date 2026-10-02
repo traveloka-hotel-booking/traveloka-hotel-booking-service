@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RequiredArgsConstructor
 @RestController
@@ -28,6 +29,13 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserDto>> updateProfile(Authentication authentication, @Valid @RequestBody UserUpdateRequest updateRequest) {
         UserDto userDto = userService.updateUser(authentication, updateRequest);
         ApiResponse<UserDto> apiResponse = new ApiResponse<>(200, "SUCCESS", userDto);
+        return ResponseEntity.ok().body(apiResponse);
+    }
+
+    @PutMapping("/avatar")
+    public ResponseEntity<ApiResponse<String>> updateAvatar(@RequestParam MultipartFile file, Authentication authentication) {
+        String filePath = userService.updateAvatar(file, authentication);
+        ApiResponse<String> apiResponse = new ApiResponse<>(200, "SUCCESS", filePath);
         return ResponseEntity.ok().body(apiResponse);
     }
 }

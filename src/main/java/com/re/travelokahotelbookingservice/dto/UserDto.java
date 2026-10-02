@@ -1,7 +1,7 @@
 package com.re.travelokahotelbookingservice.dto;
 
 import com.re.travelokahotelbookingservice.entity.enums.Role;
-import com.re.travelokahotelbookingservice.entity.Gender;
+import com.re.travelokahotelbookingservice.entity.enums.Gender;
 import lombok.*;
 
 import java.time.LocalDate;

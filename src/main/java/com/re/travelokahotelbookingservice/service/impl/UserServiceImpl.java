@@ -6,11 +6,16 @@ import com.re.travelokahotelbookingservice.entity.User;
 import com.re.travelokahotelbookingservice.mapper.UserMapper;
 import com.re.travelokahotelbookingservice.repository.UserRepository;
 import com.re.travelokahotelbookingservice.security.TokenProvider;
+import com.re.travelokahotelbookingservice.service.CloudinaryService;
 import com.re.travelokahotelbookingservice.service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 @RequiredArgsConstructor
 @Service
@@ -18,28 +23,54 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final TokenProvider tokenProvider;
     private final UserMapper userMapper;
+    private final CloudinaryService cloudinaryService;
 
     public UserDto getUser(Authentication authentication) {
         String email = authentication.getName();
 
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("email is not exist!"));
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User not found"));
         return userMapper.fromUser(user);
     }
 
+    @Transactional
     @Override
     public UserDto updateUser(Authentication authentication, UserUpdateRequest updateRequest) {
 
         String email = authentication.getName();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        user.setFullName(updateRequest.getFullName());
-        user.setPhone(updateRequest.getPhone());
-        user.setYob(updateRequest.getYob());
-        user.setGender(updateRequest.getGender());
-        user.setAddress(updateRequest.getAddress());
-        userRepository.save(user);
+        if (updateRequest.getFullName() != null) {
+            user.setFullName(updateRequest.getFullName());
+        }
+        if (updateRequest.getPhone() != null) {
+            user.setPhone(updateRequest.getPhone());
+        }
+
+        if (updateRequest.getYob() != null) {
+            user.setYob(updateRequest.getYob());
+        }
+
+        if (updateRequest.getGender() != null) {
+            user.setGender(updateRequest.getGender());
+        }
+
+        if (updateRequest.getAddress() != null) {
+            user.setAddress(updateRequest.getAddress());
+        }
+
         return userMapper.fromUser(user);
+    }
+
+    @Transactional
+    @Override
+    public String updateAvatar(MultipartFile file, Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        Map uploadImage = cloudinaryService.uploadImage(file, user.getId());
+        String avatarUrl = uploadImage.get("secure_url").toString();
+        user.setAvatarUrl(avatarUrl);
+        return avatarUrl;
     }
 }

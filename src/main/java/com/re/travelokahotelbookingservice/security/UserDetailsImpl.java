@@ -1,6 +1,6 @@
 package com.re.travelokahotelbookingservice.security;
 
-import com.re.travelokahotelbookingservice.entity.Gender;
+import com.re.travelokahotelbookingservice.entity.enums.Gender;
 import com.re.travelokahotelbookingservice.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
