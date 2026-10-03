@@ -19,3 +19,9 @@ cloudinary.api-secret=your_api_secret
 jwt.secret=your_jwt_secret_key_here
 jwt.accessTokenExpiration=900000
 jwt.refreshTokenExpiration=604800000
+
+# Bảo mật thông tin lỗi hệ thống, không để lộ exception ra response
+server.error.include-message=never
+server.error.include-binding-errors=never
+server.error.include-stacktrace=never
+server.error.include-exception=false
