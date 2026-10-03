@@ -4,6 +4,7 @@ import com.re.travelokahotelbookingservice.dto.response.ApiResponse;
 import com.re.travelokahotelbookingservice.dto.response.HotelResponseDto;
 import com.re.travelokahotelbookingservice.dto.response.RoomResponseDto;
 import com.re.travelokahotelbookingservice.service.HotelService;
+import com.re.travelokahotelbookingservice.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +21,7 @@ import java.util.List;
 public class HotelController {
 
     private final HotelService hotelService;
+    private final RoomService roomService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<HotelResponseDto>>> getHotels(
@@ -41,7 +43,7 @@ public class HotelController {
 
     @GetMapping("/{id}/rooms")
     public ResponseEntity<ApiResponse<List<RoomResponseDto>>> getHotelRooms(@PathVariable Long id) {
-        HotelResponseDto hotel = hotelService.getHotelById(id);
-        return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", hotel.getRooms()));
+        List<RoomResponseDto> result = roomService.getRoomsByHotelId(id);
+        return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", result));
     }
 }
