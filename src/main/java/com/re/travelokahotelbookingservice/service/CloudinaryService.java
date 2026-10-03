@@ -2,6 +2,8 @@ package com.re.travelokahotelbookingservice.service;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 public interface CloudinaryService {
-    String uploadImage(MultipartFile file, String folder);
+    Map uploadImage(MultipartFile file, Long userId);
 }

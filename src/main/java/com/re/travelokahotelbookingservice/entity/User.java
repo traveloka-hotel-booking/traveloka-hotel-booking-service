@@ -1,9 +1,11 @@
 package com.re.travelokahotelbookingservice.entity;
 
+import com.re.travelokahotelbookingservice.entity.enums.Gender;
 import com.re.travelokahotelbookingservice.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -32,20 +34,25 @@ public class User {
     @Column(name = "fullName")
     private String fullName;
 
+    @Column(name = "yob")
+    private LocalDate yob;
+
+    @Column(name = "gender")
+    @Convert(converter = GenderConverter.class)
+    private Gender gender;
+
+    @Column(name = "address", nullable = true)
+    private String address;
+
     @Column(name = "phone")
     private String phone;
 
-    @Column(name = "avatar_url")
-    private String avatarUrl;
-
-    @Column(name = "gender")
-    private String gender;
-
-    @Column(name = "date_of_birth")
-    private String dateOfBirth;
-
+    @Column(name = "role")
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
 
     @Column(name = "is_enabled")
     private Boolean isEnabled;

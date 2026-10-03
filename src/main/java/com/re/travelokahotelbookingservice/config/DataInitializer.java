@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -13,7 +12,7 @@ import org.springframework.stereotype.Component;
 public class DataInitializer implements CommandLineRunner {
 
     private final JdbcTemplate jdbcTemplate;
-    private final PasswordEncoder passwordEncoder;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) throws Exception {
@@ -42,6 +41,15 @@ public class DataInitializer implements CommandLineRunner {
                     "ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), is_enabled = true";
             jdbcTemplate.update(insertCustomerSql, customerPasswordHash);
 
+            String huuPasswordHash = passwordEncoder.encode("Huu123456");
+            String updateHuuSql = "UPDATE users SET password = ?, role = 'ROLE_ADMIN', is_enabled = true WHERE email = 'huutran0991@gmail.com'";
+            jdbcTemplate.update(updateHuuSql, huuPasswordHash);
+
+            try {
+                jdbcTemplate.execute("UPDATE users SET gender = 'MALE' WHERE gender = 'Nam' OR gender = 'nam'");
+                jdbcTemplate.execute("UPDATE users SET gender = 'FEMALE' WHERE gender = 'Nữ' OR gender = 'Nu' OR gender = 'nu'");
+            } catch (Exception ignored) {}
+
             log.info("Initialized default admin and customer demo accounts successfully.");
         } catch (Exception e) {
             log.warn("Notice during user seed initialization: {}", e.getMessage());
@@ -50,6 +58,11 @@ public class DataInitializer implements CommandLineRunner {
 
     private void initHotelsAndRooms() {
         try {
+            // Đảm bảo cột thumbnail_url là TEXT để lưu trữ link ảnh dài không bị lỗi truncation
+            try {
+                jdbcTemplate.execute("ALTER TABLE hotels MODIFY COLUMN thumbnail_url TEXT");
+            } catch (Exception ignored) {}
+
             // Nạp Khách Sạn ID: 1 - Khách Sạn Grand Plaza Hà Nội
             String insertHotelSql = "INSERT INTO hotels (id, name, city, address, star_rating, description, thumbnail_url, amenities, created_at) " +
                     "VALUES (1, 'Khách Sạn Grand Plaza Hà Nội', 'Hà Nội', '117 Trần Duy Hưng, Cầu Giấy, Hà Nội', 5, " +
@@ -60,20 +73,20 @@ public class DataInitializer implements CommandLineRunner {
             jdbcTemplate.execute(insertHotelSql);
 
             // Nạp Phòng ID: 101 - Khớp Frontend
-            String insertRoom101 = "INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status, bed_type, room_size, image_url) " +
-                    "VALUES (101, 1, 'Phòng Deluxe Giường Đôi Hướng Phố', 2, 1200000.00, 'AVAILABLE', '1 Giường đôi lớn (King Size)', '38 m²', 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&auto=format&fit=crop&q=60') " +
+            String insertRoom101 = "INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
+                    "VALUES (101, 1, 'Phòng Deluxe Giường Đôi Hướng Phố', 2, 1200000.00, 'AVAILABLE') " +
                     "ON DUPLICATE KEY UPDATE name = VALUES(name)";
             jdbcTemplate.execute(insertRoom101);
 
             // Nạp Phòng ID: 102 - Khớp Frontend
-            String insertRoom102 = "INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status, bed_type, room_size, image_url) " +
-                    "VALUES (102, 1, 'Phòng Executive Suite Sang Trọng', 3, 2400000.00, 'AVAILABLE', '1 Giường King & 1 Giường Sofa', '65 m²', 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&auto=format&fit=crop&q=60') " +
+            String insertRoom102 = "INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
+                    "VALUES (102, 1, 'Phòng Executive Suite Sang Trọng', 3, 2400000.00, 'AVAILABLE') " +
                     "ON DUPLICATE KEY UPDATE name = VALUES(name)";
             jdbcTemplate.execute(insertRoom102);
 
             // Nạp Phòng ID: 103 - Khớp Frontend (Family Suite Gia Đình)
-            String insertRoom103 = "INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status, bed_type, room_size, image_url) " +
-                    "VALUES (103, 1, 'Phòng Family Suite Gia Đình', 4, 3200000.00, 'AVAILABLE', '2 Giường đôi cỡ lớn', '75 m²', 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=600&auto=format&fit=crop&q=60') " +
+            String insertRoom103 = "INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
+                    "VALUES (103, 1, 'Phòng Family Suite Gia Đình', 4, 3200000.00, 'AVAILABLE') " +
                     "ON DUPLICATE KEY UPDATE name = VALUES(name), price_per_night = VALUES(price_per_night)";
             jdbcTemplate.execute(insertRoom103);
 

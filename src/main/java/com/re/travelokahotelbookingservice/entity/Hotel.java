@@ -28,6 +28,7 @@ public class Hotel {
 
     private Integer starRating;
 
+    @Column(name = "thumbnail_url", columnDefinition = "TEXT")
     private String thumbnailUrl;
 
     @Column(columnDefinition = "TEXT")

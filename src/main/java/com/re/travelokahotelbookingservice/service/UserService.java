@@ -1,10 +1,12 @@
 package com.re.travelokahotelbookingservice.service;
 
-import com.re.travelokahotelbookingservice.dto.request.ProfileUpdateRequestDto;
-import com.re.travelokahotelbookingservice.dto.response.UserProfileResponseDto;
+import com.re.travelokahotelbookingservice.dto.UserDto;
+import com.re.travelokahotelbookingservice.dto.request.UserUpdateRequest;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {
-    UserProfileResponseDto getCurrentUserProfile(String username);
-    UserProfileResponseDto updateProfile(String username, ProfileUpdateRequestDto request, MultipartFile avatar);
+    UserDto getUser(Authentication authentication);
+    UserDto updateUser(Authentication authentication, UserUpdateRequest updateRequest);
+    String updateAvatar(MultipartFile file, Authentication authentication);
 }

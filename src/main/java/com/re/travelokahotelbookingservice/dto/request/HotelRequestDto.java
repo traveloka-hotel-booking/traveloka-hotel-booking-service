@@ -25,6 +25,8 @@ public class HotelRequestDto {
     @Max(value = 5, message = "Hạng sao tối đa là 5")
     private Integer starRating;
 
+    private java.math.BigDecimal pricePerNight;
+
     private String thumbnailUrl;
     private String amenities;
 }
