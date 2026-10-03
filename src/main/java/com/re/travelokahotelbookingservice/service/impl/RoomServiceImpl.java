@@ -6,14 +6,17 @@ import com.re.travelokahotelbookingservice.entity.Hotel;
 import com.re.travelokahotelbookingservice.entity.Room;
 import com.re.travelokahotelbookingservice.repository.HotelRepository;
 import com.re.travelokahotelbookingservice.repository.RoomRepository;
+import com.re.travelokahotelbookingservice.service.CloudinaryService;
 import com.re.travelokahotelbookingservice.service.RoomService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -23,6 +26,8 @@ public class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepository;
     private final HotelRepository hotelRepository;
+    private final CloudinaryService cloudinaryService;
+
 
     @Override
     @Transactional(readOnly = true)
@@ -141,4 +146,28 @@ public class RoomServiceImpl implements RoomService {
                 .createdAt(room.getCreatedAt())
                 .build();
     }
+
+    @Override
+    @Transactional
+    public RoomResponseDto updateRoomImage(Long id, MultipartFile file) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy loại phòng với ID: " + id));
+
+        Map uploadResult = cloudinaryService.uploadImage(file, "traveloka/rooms", "room-" + id);
+        String secureUrl = (String) uploadResult.get("secure_url");
+
+        room.setImageUrl(secureUrl);
+        Room saved = roomRepository.save(room);
+        log.info("Updated image for Room id={}: {}", id, secureUrl);
+        return mapToDto(saved);
+    }
+
+    @Override
+    public String uploadRoomImage(MultipartFile file) {
+        Map uploadResult = cloudinaryService.uploadImage(file, "traveloka/rooms", "room-temp");
+        String secureUrl = (String) uploadResult.get("secure_url");
+        log.info("Uploaded room image to Cloudinary: {}", secureUrl);
+        return secureUrl;
+    }
 }
+

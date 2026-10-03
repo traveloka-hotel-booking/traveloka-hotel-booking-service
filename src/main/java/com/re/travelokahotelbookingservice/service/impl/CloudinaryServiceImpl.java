@@ -53,4 +53,39 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         }
     }
 
+    @Override
+    public Map uploadImage(MultipartFile file, String folder, String publicIdPrefix) {
+        if(file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File không được để trống");
+        }
+
+        if(file.getSize() > MAX_SIZE) {
+            throw new IllegalArgumentException("File tối đa 5MB");
+        }
+
+        if(!ALLOWED_TYPES.contains(file.getContentType())) {
+            throw new IllegalArgumentException("Chỉ chấp nhận JPG, PNG, WEBP");
+        }
+
+        try {
+            String prefix = (publicIdPrefix != null && !publicIdPrefix.isBlank()) ? publicIdPrefix : "img";
+            String publicId = prefix + "-" + UUID.randomUUID().toString().substring(0, 8);
+            String targetFolder = (folder != null && !folder.isBlank()) ? folder : "traveloka";
+
+            return cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", targetFolder,
+                            "public_id", publicId,
+                            "resource_type", "image",
+                            "overwrite", true,
+                            "invalidate", true
+                    )
+            );
+        } catch (IOException e) {
+            throw new RuntimeException("Upload ảnh lên Cloudinary thất bại", e);
+        }
+    }
+
 }
+

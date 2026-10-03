@@ -14,8 +14,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/v1/admin/hotels")
@@ -73,4 +75,20 @@ public class AdminHotelController {
         hotelService.deleteHotel(id);
         return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", "Đã xóa khách sạn thành công"));
     }
+
+    @PutMapping(value = "/{id}/thumbnail", consumes = "multipart/form-data")
+    public ResponseEntity<ApiResponse<HotelResponseDto>> updateThumbnail(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file
+    ) {
+        HotelResponseDto result = hotelService.updateThumbnail(id, file);
+        return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", "Cập nhật ảnh đại diện khách sạn thành công", result));
+    }
+
+    @PostMapping(value = "/upload-thumbnail", consumes = "multipart/form-data")
+    public ResponseEntity<ApiResponse<String>> uploadThumbnailOnly(@RequestParam("file") MultipartFile file) {
+        String url = hotelService.uploadHotelImage(file);
+        return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", "Upload ảnh thành công", url));
+    }
 }
+

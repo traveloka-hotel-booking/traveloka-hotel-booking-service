@@ -2,6 +2,7 @@ package com.re.travelokahotelbookingservice.service;
 
 import com.re.travelokahotelbookingservice.dto.request.RoomRequestDto;
 import com.re.travelokahotelbookingservice.dto.response.RoomResponseDto;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -12,4 +13,7 @@ public interface RoomService {
     RoomResponseDto createRoom(RoomRequestDto request);
     RoomResponseDto updateRoom(Long id, RoomRequestDto request);
     void deleteRoom(Long id);
+    RoomResponseDto updateRoomImage(Long id, MultipartFile file);
+    String uploadRoomImage(MultipartFile file);
 }
+

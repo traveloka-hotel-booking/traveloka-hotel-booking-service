@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -56,4 +57,20 @@ public class AdminRoomController {
         roomService.deleteRoom(id);
         return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", "Đã xóa loại phòng thành công"));
     }
+
+    @PutMapping(value = "/{id}/image", consumes = "multipart/form-data")
+    public ResponseEntity<ApiResponse<RoomResponseDto>> updateRoomImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file
+    ) {
+        RoomResponseDto result = roomService.updateRoomImage(id, file);
+        return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", "Cập nhật ảnh loại phòng thành công", result));
+    }
+
+    @PostMapping(value = "/upload-image", consumes = "multipart/form-data")
+    public ResponseEntity<ApiResponse<String>> uploadRoomImageOnly(@RequestParam("file") MultipartFile file) {
+        String url = roomService.uploadRoomImage(file);
+        return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", "Upload ảnh loại phòng thành công", url));
+    }
 }
+
