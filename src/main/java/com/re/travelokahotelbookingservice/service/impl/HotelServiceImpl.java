@@ -7,6 +7,7 @@ import com.re.travelokahotelbookingservice.entity.Hotel;
 import com.re.travelokahotelbookingservice.entity.Room;
 import com.re.travelokahotelbookingservice.repository.HotelRepository;
 import com.re.travelokahotelbookingservice.repository.RoomRepository;
+import com.re.travelokahotelbookingservice.service.CloudinaryService;
 import com.re.travelokahotelbookingservice.service.HotelService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -15,10 +16,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -28,6 +31,8 @@ public class HotelServiceImpl implements HotelService {
 
     private final HotelRepository hotelRepository;
     private final RoomRepository roomRepository;
+    private final CloudinaryService cloudinaryService;
+
 
     @Override
     @Transactional(readOnly = true)
@@ -205,4 +210,28 @@ public class HotelServiceImpl implements HotelService {
                 .rooms(roomDtos)
                 .build();
     }
+
+    @Override
+    @Transactional
+    public HotelResponseDto updateThumbnail(Long id, MultipartFile file) {
+        Hotel hotel = hotelRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khách sạn với ID: " + id));
+
+        Map uploadResult = cloudinaryService.uploadImage(file, "traveloka/hotels", "hotel-" + id);
+        String secureUrl = (String) uploadResult.get("secure_url");
+
+        hotel.setThumbnailUrl(secureUrl);
+        Hotel saved = hotelRepository.save(hotel);
+        log.info("Updated thumbnail for Hotel id={}: {}", id, secureUrl);
+        return mapToResponseDtoWithRooms(saved);
+    }
+
+    @Override
+    public String uploadHotelImage(MultipartFile file) {
+        Map uploadResult = cloudinaryService.uploadImage(file, "traveloka/hotels", "hotel-temp");
+        String secureUrl = (String) uploadResult.get("secure_url");
+        log.info("Uploaded hotel image to Cloudinary: {}", secureUrl);
+        return secureUrl;
+    }
 }
+
