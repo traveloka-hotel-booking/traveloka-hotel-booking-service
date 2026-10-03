@@ -179,9 +179,14 @@ public class HotelServiceImpl implements HotelService {
                         .hotelId(hotel.getId())
                         .hotelName(hotel.getName())
                         .name(r.getName())
+                        .description(r.getDescription())
                         .maxGuests(r.getMaxGuests())
                         .pricePerNight(r.getPricePerNight())
                         .status(r.getStatus())
+                        .imageUrl(r.getImageUrl())
+                        .bedType(r.getBedType())
+                        .roomSize(r.getRoomSize())
+                        .createdAt(r.getCreatedAt())
                         .build())
                 .collect(Collectors.toList());
 
