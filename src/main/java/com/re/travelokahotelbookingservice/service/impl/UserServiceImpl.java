@@ -3,6 +3,7 @@ package com.re.travelokahotelbookingservice.service.impl;
 import com.re.travelokahotelbookingservice.dto.UserDto;
 import com.re.travelokahotelbookingservice.dto.request.UserUpdateRequest;
 import com.re.travelokahotelbookingservice.entity.User;
+import com.re.travelokahotelbookingservice.entity.enums.Role;
 import com.re.travelokahotelbookingservice.mapper.UserMapper;
 import com.re.travelokahotelbookingservice.repository.UserRepository;
 import com.re.travelokahotelbookingservice.security.TokenProvider;
@@ -10,6 +11,9 @@ import com.re.travelokahotelbookingservice.service.CloudinaryService;
 import com.re.travelokahotelbookingservice.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,5 +76,32 @@ public class UserServiceImpl implements UserService {
         String avatarUrl = uploadImage.get("secure_url").toString();
         user.setAvatarUrl(avatarUrl);
         return avatarUrl;
+    }
+
+    @Override
+    public Page<UserDto> getAllUsers(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> users = userRepository.findAll(pageable);
+        return users.map(userMapper::fromUser);
+    }
+
+    @Override
+    public void lockUser(Long id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        if(user.getRole().equals(Role.ROLE_ADMIN)) {
+            throw new IllegalArgumentException("Không thể khóa tài khoản Admin");
+        }
+
+        user.setIsEnabled(false);
+        userRepository.save(user);
+
+    }
+
+    @Override
+    public void unlockUser(Long id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        user.setIsEnabled(true);
+        userRepository.save(user);
     }
 }
