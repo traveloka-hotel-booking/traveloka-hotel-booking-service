@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1/hotels")
@@ -46,4 +48,18 @@ public class HotelController {
         List<RoomResponseDto> result = roomService.getRoomsByHotelId(id);
         return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", result));
     }
+
+    // FR-06: Tìm kiếm khách sạn
+    @GetMapping("/search")
+    public ResponseEntity<?> searchHotels(
+            @RequestParam String city,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
+            @RequestParam Integer guests
+    ) {
+        return ResponseEntity.ok(
+                hotelService.searchHotels(city, checkIn, checkOut, guests)
+        );
+    }
+
 }
