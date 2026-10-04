@@ -22,7 +22,11 @@ public interface BookingService {
     List<AdminBookingDto> getMyBookings(String currentUsername);
 
     AdminBookingDto cancelBookingCustomer(Long bookingId, String currentUsername);
- 
+
+    AdminBookingDto payCashAdmin(Long bookingId);
+
+    AdminBookingDto checkoutAdmin(Long bookingId, java.time.LocalDate actualCheckOutDate);
+
     void deleteBookingAdmin(Long id);
 
     int cleanupExpiredBookingsAdmin();

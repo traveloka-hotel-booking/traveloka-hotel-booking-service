@@ -190,9 +190,19 @@ public class BookingServiceImpl implements BookingService {
         try {
             com.re.travelokahotelbookingservice.entity.enums.BookingStatus newStatus = 
                     com.re.travelokahotelbookingservice.entity.enums.BookingStatus.valueOf(statusStr.toUpperCase());
+
+            // 1. Chặn nhận phòng nếu chưa thanh toán (Bắt buộc: Thu tiền -> Nhận phòng -> Trả phòng)
+            if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CHECKED_IN.equals(newStatus)) {
+                com.re.travelokahotelbookingservice.entity.Payment payment = booking.getPayment();
+                if (payment == null || !com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS.equals(payment.getStatus())) {
+                    throw new com.re.travelokahotelbookingservice.exception.BusinessException(
+                            "Không thể nhận phòng: Đơn đặt phòng chưa được thanh toán! Vui lòng thu tiền khách hàng trước khi làm thủ tục nhận phòng.");
+                }
+            }
+
             booking.setStatus(newStatus);
 
-            // Khi đơn chuyển sang COMPLETED (khách trả phòng hoàn tất lưu trú)
+            // 2. Khi đơn chuyển sang COMPLETED (khách trả phòng hoàn tất lưu trú)
             if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.COMPLETED.equals(newStatus)) {
                 com.re.travelokahotelbookingservice.entity.Payment payment = booking.getPayment();
                 if (payment != null && com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CASH.equals(payment.getPaymentMethod())) {
@@ -209,6 +219,81 @@ public class BookingServiceImpl implements BookingService {
         } catch (IllegalArgumentException e) {
             throw new com.re.travelokahotelbookingservice.exception.BusinessException("Trạng thái đơn đặt phòng không hợp lệ: " + statusStr);
         }
+    }
+
+    @Override
+    @Transactional
+    public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto payCashAdmin(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đơn đặt phòng có ID: " + bookingId));
+
+        com.re.travelokahotelbookingservice.entity.Payment payment = booking.getPayment();
+        if (payment == null) {
+            payment = com.re.travelokahotelbookingservice.entity.Payment.builder()
+                    .booking(booking)
+                    .paymentMethod(com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CASH)
+                    .amount(booking.getTotalPrice())
+                    .build();
+        }
+        payment.setStatus(com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS);
+        payment.setPaymentDate(LocalDateTime.now());
+        paymentRepository.save(payment);
+        booking.setPayment(payment);
+
+        return mapToAdminBookingDto(booking);
+    }
+
+    @Override
+    @Transactional
+    public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto checkoutAdmin(Long bookingId, LocalDate actualCheckOutDate) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đơn đặt phòng có ID: " + bookingId));
+
+        if (actualCheckOutDate == null) {
+            actualCheckOutDate = LocalDate.now();
+        }
+
+        if (booking.getCheckIn() != null && actualCheckOutDate.isBefore(booking.getCheckIn())) {
+            throw new com.re.travelokahotelbookingservice.exception.BusinessException(
+                    "Ngày trả phòng thực tế (" + actualCheckOutDate + ") không thể trước ngày nhận phòng (" + booking.getCheckIn() + ")!");
+        }
+
+        long actualNights = 1;
+        if (booking.getCheckIn() != null) {
+            actualNights = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(booking.getCheckIn(), actualCheckOutDate));
+        }
+
+        java.math.BigDecimal pricePerNight = java.math.BigDecimal.ZERO;
+        if (booking.getRoom() != null && booking.getRoom().getPricePerNight() != null) {
+            pricePerNight = booking.getRoom().getPricePerNight();
+        } else if (booking.getTotalPrice() != null) {
+            long origNights = 1;
+            if (booking.getCheckIn() != null && booking.getCheckOut() != null) {
+                origNights = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(booking.getCheckIn(), booking.getCheckOut()));
+            }
+            pricePerNight = booking.getTotalPrice().divide(java.math.BigDecimal.valueOf(origNights), 0, java.math.RoundingMode.HALF_UP);
+        }
+
+        java.math.BigDecimal newTotal = pricePerNight.multiply(java.math.BigDecimal.valueOf(actualNights));
+
+        booking.setCheckOut(actualCheckOutDate);
+        booking.setTotalPrice(newTotal);
+        booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.COMPLETED);
+
+        com.re.travelokahotelbookingservice.entity.Payment payment = booking.getPayment();
+        if (payment != null) {
+            payment.setAmount(newTotal);
+            if (com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CASH.equals(payment.getPaymentMethod())) {
+                payment.setStatus(com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS);
+                if (payment.getPaymentDate() == null) {
+                    payment.setPaymentDate(LocalDateTime.now());
+                }
+            }
+            paymentRepository.save(payment);
+        }
+
+        bookingRepository.save(booking);
+        return mapToAdminBookingDto(booking);
     }
 
     @Override
@@ -257,8 +342,11 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đơn đặt phòng có ID: " + id));
 
         if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CHECKED_IN.equals(booking.getStatus())) {
-            throw new com.re.travelokahotelbookingservice.exception.BusinessException(
-                    "Không thể xóa đơn đặt phòng khi khách đang lưu trú (Đã nhận phòng)!");
+            // Cho phép xóa nếu đơn đã quá hạn ngày trả phòng (checkOut < today)
+            if (booking.getCheckOut() == null || !booking.getCheckOut().isBefore(LocalDate.now())) {
+                throw new com.re.travelokahotelbookingservice.exception.BusinessException(
+                        "Không thể xóa đơn đặt phòng khi khách đang lưu trú trong thời hạn hợp lệ!");
+            }
         }
 
         if (booking.getPayment() != null) {
@@ -274,10 +362,16 @@ public class BookingServiceImpl implements BookingService {
         List<Booking> all = bookingRepository.findAll();
         int count = 0;
         for (Booking b : all) {
-            boolean isExpired = (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING.equals(b.getStatus())
-                    || com.re.travelokahotelbookingservice.entity.enums.BookingStatus.EXPIRED.equals(b.getStatus()))
-                    && b.getCheckIn() != null && b.getCheckIn().isBefore(today);
-            if (isExpired) {
+            boolean isExpired = (
+                    com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING.equals(b.getStatus())
+                    || com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CONFIRMED.equals(b.getStatus())
+                    || com.re.travelokahotelbookingservice.entity.enums.BookingStatus.EXPIRED.equals(b.getStatus())
+            ) && b.getCheckIn() != null && b.getCheckIn().isBefore(today);
+
+            boolean isOverdueCheckout = com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CHECKED_IN.equals(b.getStatus())
+                    && b.getCheckOut() != null && b.getCheckOut().isBefore(today);
+
+            if (isExpired || isOverdueCheckout) {
                 if (b.getPayment() != null) {
                     paymentRepository.delete(b.getPayment());
                 }
@@ -295,7 +389,7 @@ public class BookingServiceImpl implements BookingService {
         for (Booking booking : bookings) {
             com.re.travelokahotelbookingservice.entity.Payment payment = booking.getPayment();
 
-            // 1. Quá hạn ngày check-in: PENDING mà checkIn < today -> chuyển sang EXPIRED
+            // 1a. Quá hạn ngày check-in: PENDING mà checkIn < today -> chuyển sang EXPIRED
             if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING.equals(booking.getStatus())
                     && booking.getCheckIn() != null
                     && booking.getCheckIn().isBefore(today)) {
@@ -303,13 +397,22 @@ public class BookingServiceImpl implements BookingService {
                 bookingRepository.save(booking);
             }
 
-            // 2. Chuyển khoản VNPay quá 30 phút mà chưa thanh toán -> Tự động HỦY (CANCELLED)
-            if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING.equals(booking.getStatus())
-                    && payment != null
+            // 1b. Quá hạn nhận phòng (No-Show): CONFIRMED mà checkIn < today -> chuyển sang EXPIRED
+            if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CONFIRMED.equals(booking.getStatus())
+                    && booking.getCheckIn() != null
+                    && booking.getCheckIn().isBefore(today)) {
+                booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.EXPIRED);
+                bookingRepository.save(booking);
+            }
+
+            // 1c. Đơn chuyển khoản VNPay chưa thanh toán mà ngày nhận phòng đã qua hoặc quá 30 phút -> HỦY (CANCELLED)
+            if (payment != null
                     && (com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.VNPAY.equals(payment.getPaymentMethod())
                         || com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CREDIT_CARD.equals(payment.getPaymentMethod()))
                     && !com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS.equals(payment.getStatus())) {
-                if (booking.getCreatedAt() != null && booking.getCreatedAt().isBefore(timeoutThreshold)) {
+                boolean isPastCheckIn = booking.getCheckIn() != null && booking.getCheckIn().isBefore(today);
+                boolean isTimeout = booking.getCreatedAt() != null && booking.getCreatedAt().isBefore(timeoutThreshold);
+                if (isPastCheckIn || isTimeout) {
                     booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CANCELLED);
                     payment.setStatus(com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.FAILED);
                     paymentRepository.save(payment);
@@ -317,7 +420,7 @@ public class BookingServiceImpl implements BookingService {
                 }
             }
 
-            // 3. Tự động duyệt đơn cho Chuyển khoản/VNPay nếu đã thanh toán thành công
+            // 2. Tự động duyệt đơn cho Chuyển khoản/VNPay nếu đã thanh toán thành công
             if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING.equals(booking.getStatus())
                     && payment != null
                     && (com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.VNPAY.equals(payment.getPaymentMethod())
@@ -327,7 +430,7 @@ public class BookingServiceImpl implements BookingService {
                 bookingRepository.save(booking);
             }
 
-            // 4. Đồng bộ thanh toán tiền mặt cho đơn đã Hoàn thành (COMPLETED)
+            // 3. Đồng bộ thanh toán tiền mặt cho đơn đã Hoàn thành (COMPLETED)
             if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.COMPLETED.equals(booking.getStatus())
                     && payment != null
                     && com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CASH.equals(payment.getPaymentMethod())

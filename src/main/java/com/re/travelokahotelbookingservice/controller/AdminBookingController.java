@@ -70,6 +70,35 @@ public class AdminBookingController {
     }
 
     /**
+     * Xác nhận thu tiền mặt cho đơn đặt phòng (Bắt buộc trước khi cho nhận phòng)
+     */
+    @PutMapping("/{id}/pay-cash")
+    public ResponseEntity<ApiResponse<AdminBookingDto>> payCash(@PathVariable Long id) {
+        AdminBookingDto booking = bookingService.payCashAdmin(id);
+        return ResponseEntity.ok(ApiResponse.<AdminBookingDto>builder()
+                .code(200)
+                .message("Đã xác nhận thu tiền mặt thành công")
+                .result(booking)
+                .build());
+    }
+
+    /**
+     * Trả phòng linh hoạt: Cho phép chọn ngày trả phòng thực tế và tính lại tổng tiền bill
+     */
+    @PutMapping("/{id}/checkout")
+    public ResponseEntity<ApiResponse<AdminBookingDto>> checkout(
+            @PathVariable Long id,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate actualCheckOutDate
+    ) {
+        AdminBookingDto booking = bookingService.checkoutAdmin(id, actualCheckOutDate);
+        return ResponseEntity.ok(ApiResponse.<AdminBookingDto>builder()
+                .code(200)
+                .message("Hoàn tất thủ tục trả phòng và quyết toán hóa đơn thành công")
+                .result(booking)
+                .build());
+    }
+
+    /**
      * Dọn dẹp tất cả các đơn đặt phòng quá hạn
      */
     @DeleteMapping("/cleanup-expired")
