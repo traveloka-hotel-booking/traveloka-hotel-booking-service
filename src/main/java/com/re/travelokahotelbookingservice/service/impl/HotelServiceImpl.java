@@ -332,14 +332,20 @@ public class HotelServiceImpl implements HotelService {
 
             // Lọc theo amenities
             if (filter.getAmenities() != null && !filter.getAmenities().isEmpty()) {
+
+                List<Predicate> amenityPredicates = new ArrayList<>();
+
                 for (String amenity : filter.getAmenities()) {
-                    predicates.add(
+                    amenityPredicates.add(
                             cb.like(
                                     cb.lower(root.get("amenities")),
                                     "%" + amenity.toLowerCase() + "%"
                             )
                     );
                 }
+
+                // OR thay vì AND
+                predicates.add(cb.or(amenityPredicates.toArray(new Predicate[0])));
             }
 
 
