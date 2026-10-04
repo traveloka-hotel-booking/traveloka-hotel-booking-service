@@ -28,4 +28,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("checkIn") LocalDate checkIn,
             @Param("checkOut") LocalDate checkOut
     );
+
+    List<Booking> findAllByOrderByCreatedAtDesc();
+
+    List<Booking> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    List<Booking> findByStatusOrderByCreatedAtDesc(com.re.travelokahotelbookingservice.entity.enums.BookingStatus status);
 }
