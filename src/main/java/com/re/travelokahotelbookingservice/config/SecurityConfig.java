@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/hotels/**").permitAll()
                         .requestMatchers("/api/v1/auth/login",
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/refresh",
@@ -63,7 +64,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/hotels/search").permitAll()
                         .requestMatchers("/api/v1/hotels").permitAll()
                         .requestMatchers("/api/v1/auth/logout").authenticated()
-                        .requestMatchers("/api/v1/customer/**").hasAuthority("ROLE_CUSTOMER")
+                        .requestMatchers("/api/v1/customer/**").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
                         .requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated()
                 )

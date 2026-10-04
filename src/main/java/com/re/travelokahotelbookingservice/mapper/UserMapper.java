@@ -9,4 +9,5 @@ public interface UserMapper {
     User toUserRegisterRequest(UserRegisterRequest request, String passwordEncoder);
     UserRegisterResponse toUser(User user);
     UserDto toUserLogin(Object principal);
+    UserDto fromUser(User user);
 }

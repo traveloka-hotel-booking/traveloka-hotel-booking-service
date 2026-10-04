@@ -12,19 +12,57 @@ import org.springframework.stereotype.Component;
 public class DataInitializer implements CommandLineRunner {
 
     private final JdbcTemplate jdbcTemplate;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) throws Exception {
-        log.info("Starting DataInitializer: Checking and seeding sample hotels and rooms...");
+        log.info("Starting DataInitializer: Checking and seeding sample users, hotels and rooms...");
 
-        // Nạp Khách sạn và Phòng khớp với Frontend mockData
+        // 1. Nạp tài khoản Admin & Customer mẫu nếu chưa có
+        initSampleUsers();
+
+        // 2. Nạp Khách sạn và Phòng khớp với Frontend mockData
         initHotelsAndRooms();
 
         log.info("DataInitializer completed successfully.");
     }
 
+    private void initSampleUsers() {
+        try {
+            String adminPasswordHash = passwordEncoder.encode("admin123");
+            String insertAdminSql = "INSERT INTO users (username, email, password, full_name, phone, role, is_enabled, created_at) " +
+                    "VALUES ('admin', 'admin@traveloka.vn', ?, 'Quản Trị Viên Traveloka', '0901234567', 'ROLE_ADMIN', true, NOW()) " +
+                    "ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), role = 'ROLE_ADMIN', is_enabled = true";
+            jdbcTemplate.update(insertAdminSql, adminPasswordHash);
+
+            String customerPasswordHash = passwordEncoder.encode("123456");
+            String insertCustomerSql = "INSERT INTO users (username, email, password, full_name, phone, role, is_enabled, created_at) " +
+                    "VALUES ('customer_demo', 'customer@traveloka.vn', ?, 'Nguyễn Văn Khách', '0912345678', 'ROLE_CUSTOMER', true, NOW()) " +
+                    "ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), is_enabled = true";
+            jdbcTemplate.update(insertCustomerSql, customerPasswordHash);
+
+            String huuPasswordHash = passwordEncoder.encode("Huu123456");
+            String updateHuuSql = "UPDATE users SET password = ?, role = 'ROLE_ADMIN', is_enabled = true WHERE email = 'huutran0991@gmail.com'";
+            jdbcTemplate.update(updateHuuSql, huuPasswordHash);
+
+            try {
+                jdbcTemplate.execute("UPDATE users SET gender = 'MALE' WHERE gender = 'Nam' OR gender = 'nam'");
+                jdbcTemplate.execute("UPDATE users SET gender = 'FEMALE' WHERE gender = 'Nữ' OR gender = 'Nu' OR gender = 'nu'");
+            } catch (Exception ignored) {}
+
+            log.info("Initialized default admin and customer demo accounts successfully.");
+        } catch (Exception e) {
+            log.warn("Notice during user seed initialization: {}", e.getMessage());
+        }
+    }
+
     private void initHotelsAndRooms() {
         try {
+            // Đảm bảo cột thumbnail_url là TEXT để lưu trữ link ảnh dài không bị lỗi truncation
+            try {
+                jdbcTemplate.execute("ALTER TABLE hotels MODIFY COLUMN thumbnail_url TEXT");
+            } catch (Exception ignored) {}
+
             // Nạp Khách Sạn ID: 1 - Khách Sạn Grand Plaza Hà Nội
             String insertHotelSql = "INSERT INTO hotels (id, name, city, address, star_rating, description, thumbnail_url, amenities, created_at) " +
                     "VALUES (1, 'Khách Sạn Grand Plaza Hà Nội', 'Hà Nội', '117 Trần Duy Hưng, Cầu Giấy, Hà Nội', 5, " +

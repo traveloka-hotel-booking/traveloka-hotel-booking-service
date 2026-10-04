@@ -21,7 +21,7 @@ public class UnauthorizedEntryPoint implements AuthenticationEntryPoint {
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
-            log.warn("Unauthorized access attempt. Path: {} | Message: {}",
+            log.info("Unauthorized access attempt. Path: {} | Message: {}",
                     request.getRequestURI(), authException.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");

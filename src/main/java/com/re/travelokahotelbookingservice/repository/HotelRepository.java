@@ -1,7 +1,11 @@
 package com.re.travelokahotelbookingservice.repository;
 
 import com.re.travelokahotelbookingservice.entity.Hotel;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
@@ -10,4 +14,9 @@ import java.util.Optional;
 @Repository
 public interface HotelRepository extends JpaRepository<Hotel, Long>, JpaSpecificationExecutor<Hotel> {
     Optional<Hotel> findByName(String name);
+
+    @Query("SELECT h FROM Hotel h WHERE " +
+           "(:city IS NULL OR :city = '' OR LOWER(h.city) = LOWER(:city)) AND " +
+           "(:search IS NULL OR :search = '' OR LOWER(h.name) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(h.address) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<Hotel> searchHotels(@Param("city") String city, @Param("search") String search, Pageable pageable);
 }
