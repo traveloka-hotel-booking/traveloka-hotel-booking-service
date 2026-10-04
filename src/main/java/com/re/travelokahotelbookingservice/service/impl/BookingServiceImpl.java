@@ -191,6 +191,19 @@ public class BookingServiceImpl implements BookingService {
             com.re.travelokahotelbookingservice.entity.enums.BookingStatus newStatus = 
                     com.re.travelokahotelbookingservice.entity.enums.BookingStatus.valueOf(statusStr.toUpperCase());
             booking.setStatus(newStatus);
+
+            // Khi đơn chuyển sang COMPLETED (khách trả phòng hoàn tất lưu trú)
+            if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.COMPLETED.equals(newStatus)) {
+                com.re.travelokahotelbookingservice.entity.Payment payment = booking.getPayment();
+                if (payment != null && com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CASH.equals(payment.getPaymentMethod())) {
+                    payment.setStatus(com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS);
+                    if (payment.getPaymentDate() == null) {
+                        payment.setPaymentDate(LocalDateTime.now());
+                    }
+                    paymentRepository.save(payment);
+                }
+            }
+
             bookingRepository.save(booking);
             return mapToAdminBookingDto(booking);
         } catch (IllegalArgumentException e) {
@@ -277,12 +290,53 @@ public class BookingServiceImpl implements BookingService {
 
     private void syncExpiredBookings(List<Booking> bookings) {
         LocalDate today = LocalDate.now();
+        LocalDateTime timeoutThreshold = LocalDateTime.now().minusMinutes(30);
+
         for (Booking booking : bookings) {
+            com.re.travelokahotelbookingservice.entity.Payment payment = booking.getPayment();
+
+            // 1. Quá hạn ngày check-in: PENDING mà checkIn < today -> chuyển sang EXPIRED
             if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING.equals(booking.getStatus())
                     && booking.getCheckIn() != null
                     && booking.getCheckIn().isBefore(today)) {
                 booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.EXPIRED);
                 bookingRepository.save(booking);
+            }
+
+            // 2. Chuyển khoản VNPay quá 30 phút mà chưa thanh toán -> Tự động HỦY (CANCELLED)
+            if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING.equals(booking.getStatus())
+                    && payment != null
+                    && (com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.VNPAY.equals(payment.getPaymentMethod())
+                        || com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CREDIT_CARD.equals(payment.getPaymentMethod()))
+                    && !com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS.equals(payment.getStatus())) {
+                if (booking.getCreatedAt() != null && booking.getCreatedAt().isBefore(timeoutThreshold)) {
+                    booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CANCELLED);
+                    payment.setStatus(com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.FAILED);
+                    paymentRepository.save(payment);
+                    bookingRepository.save(booking);
+                }
+            }
+
+            // 3. Tự động duyệt đơn cho Chuyển khoản/VNPay nếu đã thanh toán thành công
+            if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING.equals(booking.getStatus())
+                    && payment != null
+                    && (com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.VNPAY.equals(payment.getPaymentMethod())
+                        || com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CREDIT_CARD.equals(payment.getPaymentMethod()))
+                    && com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS.equals(payment.getStatus())) {
+                booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CONFIRMED);
+                bookingRepository.save(booking);
+            }
+
+            // 4. Đồng bộ thanh toán tiền mặt cho đơn đã Hoàn thành (COMPLETED)
+            if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.COMPLETED.equals(booking.getStatus())
+                    && payment != null
+                    && com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CASH.equals(payment.getPaymentMethod())
+                    && !com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS.equals(payment.getStatus())) {
+                payment.setStatus(com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS);
+                if (payment.getPaymentDate() == null) {
+                    payment.setPaymentDate(booking.getCreatedAt() != null ? booking.getCreatedAt() : LocalDateTime.now());
+                }
+                paymentRepository.save(payment);
             }
         }
     }

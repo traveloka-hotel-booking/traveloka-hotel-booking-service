@@ -64,6 +64,20 @@ public class PaymentServiceImpl implements PaymentService {
             throw new BusinessException("Đơn đặt phòng này đã được thanh toán thành công");
         }
 
+        // Kiểm tra nếu đơn đặt phòng đã bị hủy hoặc hết hạn
+        if (BookingStatus.CANCELLED.equals(booking.getStatus()) || BookingStatus.EXPIRED.equals(booking.getStatus())) {
+            throw new BusinessException("Đơn đặt phòng này đã bị hủy hoặc hết hạn, không thể thanh toán");
+        }
+
+        // Kiểm tra giới hạn thời gian 30 phút cho thanh toán chuyển khoản/VNPay
+        if ((PaymentMethod.VNPAY.equals(request.getPaymentMethod()) || PaymentMethod.CREDIT_CARD.equals(request.getPaymentMethod()))
+                && booking.getCreatedAt() != null
+                && booking.getCreatedAt().isBefore(LocalDateTime.now().minusMinutes(30))) {
+            booking.setStatus(BookingStatus.CANCELLED);
+            bookingRepository.save(booking);
+            throw new BusinessException("Đơn đặt phòng đã hết hạn thanh toán (quá thời hạn 30 phút). Vui lòng đặt phòng lại!");
+        }
+
         payment.setPaymentMethod(request.getPaymentMethod());
         payment.setAmount(booking.getTotalPrice());
         payment.setStatus(PaymentStatus.PENDING);
