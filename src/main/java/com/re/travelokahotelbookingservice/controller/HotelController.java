@@ -5,6 +5,7 @@ import com.re.travelokahotelbookingservice.dto.response.HotelResponseDto;
 import com.re.travelokahotelbookingservice.dto.response.RoomResponseDto;
 import com.re.travelokahotelbookingservice.service.HotelService;
 import com.re.travelokahotelbookingservice.service.RoomService;
+import com.re.travelokahotelbookingservice.dto.hotel.HotelFilterRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
+import java.util.Arrays;
 
 @RestController
 @RequestMapping("/api/v1/hotels")
@@ -61,5 +63,38 @@ public class HotelController {
                 hotelService.searchHotels(city, checkIn, checkOut, guests)
         );
     }
+
+    //FR-07
+
+    @GetMapping("/filter")
+    public ResponseEntity<?> filterHotels(
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) Integer minStar,
+            @RequestParam(required = false) Integer maxStar,
+            @RequestParam(required = false) String amenities,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        HotelFilterRequest filter = new HotelFilterRequest();
+        filter.setCity(city);
+        filter.setMinStar(minStar);
+        filter.setMaxStar(maxStar);
+
+        // Parse chuỗi amenities → List<String>
+        if (amenities != null && !amenities.isBlank()) {
+            filter.setAmenities(
+                    Arrays.stream(amenities.split(","))
+                            .map(String::trim)
+                            .toList()
+            );
+        }
+
+        return ResponseEntity.ok(
+                hotelService.filterHotels(filter, pageable)
+        );
+    }
+
 
 }

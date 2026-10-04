@@ -3,6 +3,8 @@ package com.re.travelokahotelbookingservice.service;
 import com.re.travelokahotelbookingservice.dto.request.HotelRequestDto;
 import com.re.travelokahotelbookingservice.dto.response.HotelResponseDto;
 import com.re.travelokahotelbookingservice.dto.hotel.HotelSearchResponseDto;
+import com.re.travelokahotelbookingservice.dto.hotel.HotelListItemDto;
+import com.re.travelokahotelbookingservice.dto.hotel.HotelFilterRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +24,10 @@ public interface HotelService {
 
     // FR-06
     Page<HotelSearchResponseDto> searchHotels(String city, LocalDate checkIn, LocalDate checkOut, Integer guests);
+
+    // FR-07
+    Page<HotelListItemDto> filterHotels(HotelFilterRequest filter, Pageable pageable);
+
 
 }
 

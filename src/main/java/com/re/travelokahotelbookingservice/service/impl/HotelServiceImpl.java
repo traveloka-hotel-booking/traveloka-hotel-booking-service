@@ -4,6 +4,8 @@ import com.re.travelokahotelbookingservice.dto.request.HotelRequestDto;
 import com.re.travelokahotelbookingservice.dto.response.HotelResponseDto;
 import com.re.travelokahotelbookingservice.dto.response.RoomResponseDto;
 import com.re.travelokahotelbookingservice.dto.hotel.HotelSearchResponseDto;
+import com.re.travelokahotelbookingservice.dto.hotel.HotelListItemDto;
+import com.re.travelokahotelbookingservice.dto.hotel.HotelFilterRequest;
 import com.re.travelokahotelbookingservice.entity.Hotel;
 import com.re.travelokahotelbookingservice.entity.Room;
 import com.re.travelokahotelbookingservice.repository.HotelRepository;
@@ -309,5 +311,72 @@ public class HotelServiceImpl implements HotelService {
         return new PageImpl<>(content, pageable, content.size());
 
     }
+
+    //FR-07
+    @Override
+    public Page<HotelListItemDto> filterHotels(HotelFilterRequest filter, Pageable pageable) {
+
+        Specification<Hotel> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Lọc theo city
+            if (filter.getCity() != null && !filter.getCity().isBlank()) {
+                predicates.add(
+                        cb.like(
+                                cb.lower(root.get("city")),
+                                "%" + filter.getCity().toLowerCase() + "%"
+                        )
+                );
+            }
+
+
+            // Lọc theo amenities
+            if (filter.getAmenities() != null && !filter.getAmenities().isEmpty()) {
+                for (String amenity : filter.getAmenities()) {
+                    predicates.add(
+                            cb.like(
+                                    cb.lower(root.get("amenities")),
+                                    "%" + amenity.toLowerCase() + "%"
+                            )
+                    );
+                }
+            }
+
+
+            // Lọc theo số sao
+            if (filter.getMinStar() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("starRating"), filter.getMinStar()));
+            }
+
+            if (filter.getMaxStar() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("starRating"), filter.getMaxStar()));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<Hotel> hotelPage = hotelRepository.findAll(spec, pageable);
+
+        List<HotelListItemDto> content = hotelPage.getContent().stream()
+                .map(hotel -> {
+
+                    // Lấy minPrice từ RoomRepository
+                    BigDecimal minPrice = roomRepository.findMinPriceByHotelId(hotel.getId());
+
+                    return HotelListItemDto.builder()
+                            .id(hotel.getId())
+                            .name(hotel.getName())
+                            .city(hotel.getCity())
+                            .address(hotel.getAddress())
+                            .starRating(hotel.getStarRating())
+                            .thumbnailUrl(hotel.getThumbnailUrl())
+                            .minPricePerNight(minPrice)
+                            .build();
+                })
+                .toList();
+
+        return new PageImpl<>(content, pageable, hotelPage.getTotalElements());
+    }
+
 }
 
