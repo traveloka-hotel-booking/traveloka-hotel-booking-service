@@ -20,6 +20,7 @@ import jakarta.transaction.Transactional;
 import jakarta.persistence.EntityNotFoundException;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -30,13 +31,16 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final com.re.travelokahotelbookingservice.repository.PaymentRepository paymentRepository;
 
     public BookingServiceImpl(BookingRepository bookingRepository,
                               RoomRepository roomRepository,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              com.re.travelokahotelbookingservice.repository.PaymentRepository paymentRepository) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     @Override
@@ -105,9 +109,11 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public List<com.re.travelokahotelbookingservice.dto.response.AdminBookingDto> getAllBookingsAdmin() {
-        return bookingRepository.findAllByOrderByCreatedAtDesc()
-                .stream()
+        List<Booking> bookings = bookingRepository.findAllByOrderByCreatedAtDesc();
+        syncExpiredBookings(bookings);
+        return bookings.stream()
                 .map(this::mapToAdminBookingDto)
                 .collect(java.util.stream.Collectors.toList());
     }
@@ -127,6 +133,30 @@ public class BookingServiceImpl implements BookingService {
 
         if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CANCELLED.equals(booking.getStatus())) {
             throw new com.re.travelokahotelbookingservice.exception.BusinessException("Không thể duyệt đơn đặt phòng đã bị hủy");
+        }
+
+        if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.EXPIRED.equals(booking.getStatus())) {
+            throw new com.re.travelokahotelbookingservice.exception.BusinessException("Không thể duyệt đơn đặt phòng đã quá hạn");
+        }
+
+        // 1. Kiểm tra ngày nhận phòng: Nếu đã qua ngày nhận phòng thì không cho duyệt
+        if (booking.getCheckIn() != null && booking.getCheckIn().isBefore(LocalDate.now())) {
+            booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.EXPIRED);
+            bookingRepository.save(booking);
+            throw new com.re.travelokahotelbookingservice.exception.BusinessException(
+                    "Không thể duyệt đơn: Đơn đặt phòng này đã quá hạn ngày nhận phòng (" + booking.getCheckIn() + ")! Hệ thống đã tự động chuyển sang trạng thái ĐÃ QUÁ HẠN.");
+        }
+
+        // 2. Kiểm tra thanh toán: Đối với phương thức chuyển khoản/VNPay, bắt buộc phải thanh toán thành công mới được duyệt
+        Payment payment = booking.getPayment();
+        if (payment != null) {
+            if (com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.VNPAY.equals(payment.getPaymentMethod())
+                    || com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CREDIT_CARD.equals(payment.getPaymentMethod())) {
+                if (!com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS.equals(payment.getStatus())) {
+                    throw new com.re.travelokahotelbookingservice.exception.BusinessException(
+                            "Không thể duyệt đơn: Khách hàng chưa hoàn tất thanh toán bằng phương thức chuyển khoản/VNPay!");
+                }
+            }
         }
 
         booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CONFIRMED);
@@ -169,13 +199,15 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public List<com.re.travelokahotelbookingservice.dto.response.AdminBookingDto> getMyBookings(String currentUsername) {
         User user = userRepository.findByEmail(currentUsername)
                 .or(() -> userRepository.findByUsername(currentUsername))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + currentUsername));
 
-        return bookingRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
-                .stream()
+        List<Booking> bookings = bookingRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        syncExpiredBookings(bookings);
+        return bookings.stream()
                 .map(this::mapToAdminBookingDto)
                 .collect(java.util.stream.Collectors.toList());
     }
@@ -203,6 +235,56 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
 
         return mapToAdminBookingDto(booking);
+    }
+
+    @Override
+    @Transactional
+    public void deleteBookingAdmin(Long id) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đơn đặt phòng có ID: " + id));
+
+        if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CHECKED_IN.equals(booking.getStatus())) {
+            throw new com.re.travelokahotelbookingservice.exception.BusinessException(
+                    "Không thể xóa đơn đặt phòng khi khách đang lưu trú (Đã nhận phòng)!");
+        }
+
+        if (booking.getPayment() != null) {
+            paymentRepository.delete(booking.getPayment());
+        }
+        bookingRepository.delete(booking);
+    }
+
+    @Override
+    @Transactional
+    public int cleanupExpiredBookingsAdmin() {
+        LocalDate today = LocalDate.now();
+        List<Booking> all = bookingRepository.findAll();
+        int count = 0;
+        for (Booking b : all) {
+            boolean isExpired = (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING.equals(b.getStatus())
+                    || com.re.travelokahotelbookingservice.entity.enums.BookingStatus.EXPIRED.equals(b.getStatus()))
+                    && b.getCheckIn() != null && b.getCheckIn().isBefore(today);
+            if (isExpired) {
+                if (b.getPayment() != null) {
+                    paymentRepository.delete(b.getPayment());
+                }
+                bookingRepository.delete(b);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private void syncExpiredBookings(List<Booking> bookings) {
+        LocalDate today = LocalDate.now();
+        for (Booking booking : bookings) {
+            if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING.equals(booking.getStatus())
+                    && booking.getCheckIn() != null
+                    && booking.getCheckIn().isBefore(today)) {
+                booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.EXPIRED);
+                bookingRepository.save(booking);
+            }
+        }
     }
 
     private com.re.travelokahotelbookingservice.dto.response.AdminBookingDto mapToAdminBookingDto(Booking booking) {

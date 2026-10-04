@@ -68,4 +68,30 @@ public class AdminBookingController {
         AdminBookingDto booking = bookingService.updateBookingStatusAdmin(id, status);
         return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", booking));
     }
+
+    /**
+     * Dọn dẹp tất cả các đơn đặt phòng quá hạn
+     */
+    @DeleteMapping("/cleanup-expired")
+    public ResponseEntity<ApiResponse<Integer>> cleanupExpiredBookings() {
+        int count = bookingService.cleanupExpiredBookingsAdmin();
+        return ResponseEntity.ok(ApiResponse.<Integer>builder()
+                .code(200)
+                .message("Đã dọn dẹp thành công " + count + " đơn đặt phòng quá hạn")
+                .result(count)
+                .build());
+    }
+
+    /**
+     * Xóa đơn đặt phòng theo ID
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteBooking(@PathVariable Long id) {
+        bookingService.deleteBookingAdmin(id);
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .code(200)
+                .message("Đã xóa đơn đặt phòng thành công")
+                .result("DELETED")
+                .build());
+    }
 }

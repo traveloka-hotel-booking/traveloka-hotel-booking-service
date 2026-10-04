@@ -22,4 +22,8 @@ public interface BookingService {
     List<AdminBookingDto> getMyBookings(String currentUsername);
 
     AdminBookingDto cancelBookingCustomer(Long bookingId, String currentUsername);
+ 
+    void deleteBookingAdmin(Long id);
+
+    int cleanupExpiredBookingsAdmin();
 }
