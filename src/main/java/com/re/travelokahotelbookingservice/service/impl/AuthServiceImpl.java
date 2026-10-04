@@ -157,16 +157,16 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         if(!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new RuntimeException("Mật khẩu không đúng");
+            throw new BusinessException("Mật khẩu không đúng");
         }
         if(passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
-            throw new RuntimeException("Mật khẩu mới không được trùng với mật khẩu cũ");
+            throw new BusinessException("Mật khẩu mới không được trùng với mật khẩu cũ");
         }
 
         String authorization = requestHeader.getHeader("Authorization");
 
         if(authorization == null || !authorization.startsWith("Bearer ")) {
-            throw new RuntimeException("Invalid access token");
+            throw new BusinessException("Invalid access token");
         }
 
         String accessToken = authorization.substring(7);
