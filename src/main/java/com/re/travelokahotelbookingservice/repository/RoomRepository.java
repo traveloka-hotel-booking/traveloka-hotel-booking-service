@@ -12,7 +12,6 @@ import java.math.BigDecimal;
 
 public interface RoomRepository extends JpaRepository<Room, Long> {
 
-    // Dùng đúng mapping: Room.hotel.id
     List<Room> findByHotel_Id(Long hotelId);
 
     // FR-06: tìm phòng còn trống theo khoảng thời gian + số khách
@@ -33,11 +32,5 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
             @Param("checkOut") LocalDate checkOut
     );
 
-   //FR-07
-    @Query("""
-    SELECT MIN(r.pricePerNight)
-    FROM Room r
-    WHERE r.hotel.id = :hotelId
-""")
     BigDecimal findMinPriceByHotelId(@Param("hotelId") Long hotelId);
 }
