@@ -3,6 +3,9 @@ package com.re.travelokahotelbookingservice.service.impl;
 import com.re.travelokahotelbookingservice.dto.request.HotelRequestDto;
 import com.re.travelokahotelbookingservice.dto.response.HotelResponseDto;
 import com.re.travelokahotelbookingservice.dto.response.RoomResponseDto;
+import com.re.travelokahotelbookingservice.dto.hotel.HotelSearchResponseDto;
+import com.re.travelokahotelbookingservice.dto.hotel.HotelListItemDto;
+import com.re.travelokahotelbookingservice.dto.hotel.HotelFilterRequest;
 import com.re.travelokahotelbookingservice.entity.Hotel;
 import com.re.travelokahotelbookingservice.entity.Room;
 import com.re.travelokahotelbookingservice.repository.HotelRepository;
@@ -17,12 +20,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.time.LocalDate;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -233,5 +242,150 @@ public class HotelServiceImpl implements HotelService {
         log.info("Uploaded hotel image to Cloudinary: {}", secureUrl);
         return secureUrl;
     }
+
+    // FR-06: Search Hotels
+    @Override
+    public Page<HotelSearchResponseDto> searchHotels(
+            String city,
+            LocalDate checkIn,
+            LocalDate checkOut,
+            Integer guests,
+            Pageable pageable
+    ) {
+
+        // 1. Build Specification lọc theo city
+        Specification<Hotel> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (city != null && !city.isBlank()) {
+                predicates.add(
+                        cb.like(
+                                cb.lower(root.get("city")),
+                                "%" + city.toLowerCase() + "%"
+                        )
+                );
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        if (pageable == null) {
+            pageable = PageRequest.of(0, 20, Sort.by("name").ascending());
+        }
+
+        Page<Hotel> hotelPage = hotelRepository.findAll(spec, pageable);
+
+        // 2. Map sang DTO, chỉ giữ hotel có phòng còn trống
+        List<HotelSearchResponseDto> content = hotelPage.getContent().stream()
+                .map(hotel -> {
+
+                    // Dùng JPQL kiểm tra phòng còn trống đúng FR-06
+                    List<Room> availableRooms = roomRepository.findAvailableRooms(
+                            hotel.getId(),
+                            guests,
+                            checkIn,
+                            checkOut
+                    );
+
+                    // Nếu không có phòng phù hợp → loại hotel
+                    if (availableRooms.isEmpty()) {
+                        return null;
+                    }
+
+                    // Tính minPricePerNight
+                    BigDecimal minPrice = availableRooms.stream()
+                            .map(Room::getPricePerNight)
+                            .min(BigDecimal::compareTo)
+                            .orElse(null);
+
+                    return HotelSearchResponseDto.builder()
+                            .id(hotel.getId())
+                            .name(hotel.getName())
+                            .city(hotel.getCity())
+                            .address(hotel.getAddress())
+                            .starRating(hotel.getStarRating())
+                            .thumbnailUrl(hotel.getThumbnailUrl())
+                            .minPricePerNight(minPrice)
+                            .build();
+                })
+                .filter(Objects::nonNull)
+                .toList();
+
+        return new PageImpl<>(content, pageable, content.size());
+
+    }
+
+    //FR-07
+    @Override
+    public Page<HotelListItemDto> filterHotels(HotelFilterRequest filter, Pageable pageable) {
+
+        Specification<Hotel> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Lọc theo city
+            if (filter.getCity() != null && !filter.getCity().isBlank()) {
+                predicates.add(
+                        cb.like(
+                                cb.lower(root.get("city")),
+                                "%" + filter.getCity().toLowerCase() + "%"
+                        )
+                );
+            }
+
+
+            // Lọc theo amenities
+            if (filter.getAmenities() != null && !filter.getAmenities().isEmpty()) {
+
+                List<Predicate> amenityPredicates = new ArrayList<>();
+
+                for (String amenity : filter.getAmenities()) {
+                    amenityPredicates.add(
+                            cb.like(
+                                    cb.lower(root.get("amenities")),
+                                    "%" + amenity.toLowerCase() + "%"
+                            )
+                    );
+                }
+
+                // OR thay vì AND
+                predicates.add(cb.or(amenityPredicates.toArray(new Predicate[0])));
+            }
+
+
+            // Lọc theo số sao
+            if (filter.getMinStar() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("starRating"), filter.getMinStar()));
+            }
+
+            if (filter.getMaxStar() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("starRating"), filter.getMaxStar()));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<Hotel> hotelPage = hotelRepository.findAll(spec, pageable);
+
+        List<HotelListItemDto> content = hotelPage.getContent().stream()
+                .map(hotel -> {
+
+                    // Lấy minPrice từ RoomRepository
+                    BigDecimal minPrice = roomRepository.findMinPriceByHotelId(hotel.getId());
+
+                    return HotelListItemDto.builder()
+                            .id(hotel.getId())
+                            .name(hotel.getName())
+                            .city(hotel.getCity())
+                            .address(hotel.getAddress())
+                            .starRating(hotel.getStarRating())
+                            .thumbnailUrl(hotel.getThumbnailUrl())
+                            .minPricePerNight(minPrice)
+                            .build();
+                })
+                .toList();
+
+        return new PageImpl<>(content, pageable, hotelPage.getTotalElements());
+    }
+
 }
 
