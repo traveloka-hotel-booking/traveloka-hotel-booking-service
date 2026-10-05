@@ -52,6 +52,12 @@ public class BookingServiceImpl implements BookingService {
                 .or(() -> userRepository.findByUsername(currentUsername))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + currentUsername));
 
+        // Kiểm tra phân quyền: Không cho phép Admin đặt phòng
+        if (com.re.travelokahotelbookingservice.entity.enums.Role.ROLE_ADMIN.equals(user.getRole())) {
+            throw new com.re.travelokahotelbookingservice.exception.BusinessException(
+                    "Tài khoản Quản trị viên (Admin) không được phép đặt phòng! Vui lòng sử dụng tài khoản Khách hàng (Customer).");
+        }
+
         // 2. Lấy room
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new EntityNotFoundException("Room not found with ID: " + request.getRoomId()));

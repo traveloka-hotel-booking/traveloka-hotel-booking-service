@@ -24,7 +24,7 @@ public class BookingController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<BookingResponseDto> createBooking(
             @RequestBody BookingRequestDto request,
             Authentication authentication
