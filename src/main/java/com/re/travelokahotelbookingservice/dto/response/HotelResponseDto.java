@@ -10,7 +10,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class HotelResponseDto {
+public class HotelResponseDto implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     private Long id;
     private String name;
     private String description;

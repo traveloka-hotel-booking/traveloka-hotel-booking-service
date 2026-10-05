@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # 1. Máy chủ Redis Server (In-Memory Data Store & Caching)
+  redis:
+    image: redis:7-alpine
+    container_name: traveloka-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Giao diện trực quan RedisInsight (Truy cập qua trình duyệt Web: http://localhost:8001)
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: traveloka-redis-insight
+    restart: always
+    ports:
+      - "8001:8001"
+    volumes:
+      - redisinsight_data:/data
+    depends_on:
+      - redis
+
+volumes:
+  redis_data:
+    driver: local
+  redisinsight_data:
+    driver: local

@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -59,6 +61,7 @@ public class HotelServiceImpl implements HotelService {
     }
 
     @Override
+    @Cacheable(value = "hotel_detail", key = "#id")
     @Transactional(readOnly = true)
     public HotelResponseDto getHotelById(Long id) {
         Hotel hotel = hotelRepository.findById(id)
@@ -67,6 +70,7 @@ public class HotelServiceImpl implements HotelService {
     }
 
     @Override
+    @CacheEvict(value = "hotel_detail", allEntries = true)
     @Transactional
     public HotelResponseDto createHotel(HotelRequestDto request) {
         Hotel hotel = Hotel.builder()
@@ -97,6 +101,7 @@ public class HotelServiceImpl implements HotelService {
     }
 
     @Override
+    @CacheEvict(value = "hotel_detail", key = "#id")
     @Transactional
     public HotelResponseDto updateHotel(Long id, HotelRequestDto request) {
         Hotel hotel = hotelRepository.findById(id)
@@ -143,6 +148,7 @@ public class HotelServiceImpl implements HotelService {
     }
 
     @Override
+    @CacheEvict(value = "hotel_detail", key = "#id")
     @Transactional
     public void deleteHotel(Long id) {
         Hotel hotel = hotelRepository.findById(id)
