@@ -55,6 +55,8 @@ public class UserDetailsImpl implements UserDetails {
         return user.getPhone();
     }
 
+    public String getAvatarUrl() { return user.getAvatarUrl(); }
+
     public LocalDateTime getCreatedAt() {
         return user.getCreatedAt();
     }

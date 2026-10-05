@@ -1,6 +1,7 @@
 package com.re.travelokahotelbookingservice.service.impl;
 
 import com.re.travelokahotelbookingservice.dto.UserDto;
+import com.re.travelokahotelbookingservice.dto.request.ChangePasswordRequest;
 import com.re.travelokahotelbookingservice.dto.request.LoginRequest;
 import com.re.travelokahotelbookingservice.dto.request.RefreshTokenRequest;
 import com.re.travelokahotelbookingservice.dto.request.UserRegisterRequest;
@@ -146,5 +147,41 @@ public class AuthServiceImpl implements AuthService {
         tokenBlackListRepository.save(tokenBlackList);
         refreshTokenRepository.findByRefreshToken(refreshToken)
                 .ifPresent(refreshTokenRepository::delete);
+    }
+
+    @Transactional
+    @Override
+    public void changePassword(Authentication authentication, HttpServletRequest requestHeader, ChangePasswordRequest request) {
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if(!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new BusinessException("Mật khẩu không đúng");
+        }
+        if(passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new BusinessException("Mật khẩu mới không được trùng với mật khẩu cũ");
+        }
+
+        String authorization = requestHeader.getHeader("Authorization");
+
+        if(authorization == null || !authorization.startsWith("Bearer ")) {
+            throw new BusinessException("Invalid access token");
+        }
+
+        String accessToken = authorization.substring(7);
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+
+        Instant expDate = tokenProvider.getExpiryDate(accessToken);
+
+        TokenBlackList tokenBlackList = TokenBlackList.builder()
+                .accessToken(accessToken)
+                .expDate(expDate)
+                .build();
+
+        tokenBlackListRepository.save(tokenBlackList);
+
+        refreshTokenRepository.deleteByUserId(user.getId());
     }
 }

@@ -62,6 +62,7 @@ public class UserMapperImpl implements UserMapper {
                     .address(userDetails.getAddress())
                     .phone(userDetails.getPhone())
                     .role(role)
+                    .avatarUrl(userDetails.getAvatarUrl())
                     .isEnabled(userDetails.isEnabled())
                     .createdAt(userDetails.getCreatedAt())
                     .build();
@@ -81,6 +82,7 @@ public class UserMapperImpl implements UserMapper {
                 .address(user.getAddress())
                 .phone(user.getPhone())
                 .role(user.getRole())
+                .avatarUrl(user.getAvatarUrl())
                 .isEnabled(user.getIsEnabled())
                 .createdAt(user.getCreatedAt())
                 .build();

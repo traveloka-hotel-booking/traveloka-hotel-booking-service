@@ -46,4 +46,11 @@ public class AuthController {
         ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", null);
         return ResponseEntity.ok().body(apiResponse);
     }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<ApiResponse<?>> changePassword(Authentication authentication, HttpServletRequest requestHeader, @Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(authentication, requestHeader, request);
+        ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Cập nhật mật khẩu thành công");
+        return ResponseEntity.ok().body(apiResponse);
+    }
 }

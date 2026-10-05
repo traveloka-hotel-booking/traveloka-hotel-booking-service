@@ -22,6 +22,7 @@ public class UserDto {
     private String address;
     private String phone;
     private Role role;
+    private String avatarUrl;
     private Boolean isEnabled;
     private LocalDateTime createdAt;
 }
