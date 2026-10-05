@@ -29,7 +29,7 @@ public class PaymentController {
      * Tạo yêu cầu thanh toán (VNPay Sandbox hoặc Tiền mặt)
      */
     @PostMapping("/create-url")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     public ResponseEntity<ApiResponse<PaymentResponseDto>> createPayment(
             @Valid @RequestBody CreatePaymentRequest request,
             Authentication authentication,
@@ -55,7 +55,7 @@ public class PaymentController {
      * Tra cứu thông tin thanh toán theo mã đơn đặt phòng
      */
     @GetMapping("/booking/{bookingId}")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     public ResponseEntity<ApiResponse<PaymentResponseDto>> getPaymentByBookingId(
             @PathVariable Long bookingId,
             Authentication authentication

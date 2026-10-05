@@ -245,6 +245,59 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
+    public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto checkinAdmin(Long bookingId, LocalDate actualCheckInDate) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đơn đặt phòng có ID: " + bookingId));
+
+        // 1. Chặn nhận phòng nếu chưa thanh toán (Bắt buộc: Thu tiền -> Nhận phòng -> Trả phòng)
+        com.re.travelokahotelbookingservice.entity.Payment payment = booking.getPayment();
+        if (payment == null || !com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS.equals(payment.getStatus())) {
+            throw new com.re.travelokahotelbookingservice.exception.BusinessException(
+                    "Không thể nhận phòng: Đơn đặt phòng chưa được thanh toán! Vui lòng thu tiền khách hàng trước khi làm thủ tục nhận phòng.");
+        }
+
+        if (actualCheckInDate == null) {
+            actualCheckInDate = LocalDate.now();
+        }
+
+        if (booking.getCheckOut() != null && actualCheckInDate.isAfter(booking.getCheckOut())) {
+            throw new com.re.travelokahotelbookingservice.exception.BusinessException(
+                    "Ngày nhận phòng thực tế (" + actualCheckInDate + ") không thể sau ngày trả phòng (" + booking.getCheckOut() + ")!");
+        }
+
+        long actualNights = 1;
+        if (booking.getCheckOut() != null) {
+            actualNights = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(actualCheckInDate, booking.getCheckOut()));
+        }
+
+        java.math.BigDecimal pricePerNight = java.math.BigDecimal.ZERO;
+        if (booking.getRoom() != null && booking.getRoom().getPricePerNight() != null) {
+            pricePerNight = booking.getRoom().getPricePerNight();
+        } else if (booking.getTotalPrice() != null) {
+            long origNights = 1;
+            if (booking.getCheckIn() != null && booking.getCheckOut() != null) {
+                origNights = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(booking.getCheckIn(), booking.getCheckOut()));
+            }
+            pricePerNight = booking.getTotalPrice().divide(java.math.BigDecimal.valueOf(origNights), 0, java.math.RoundingMode.HALF_UP);
+        }
+
+        java.math.BigDecimal newTotal = pricePerNight.multiply(java.math.BigDecimal.valueOf(actualNights));
+
+        booking.setCheckIn(actualCheckInDate);
+        booking.setTotalPrice(newTotal);
+        booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CHECKED_IN);
+
+        if (payment != null) {
+            payment.setAmount(newTotal);
+            paymentRepository.save(payment);
+        }
+
+        bookingRepository.save(booking);
+        return mapToAdminBookingDto(booking);
+    }
+
+    @Override
+    @Transactional
     public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto checkoutAdmin(Long bookingId, LocalDate actualCheckOutDate) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đơn đặt phòng có ID: " + bookingId));

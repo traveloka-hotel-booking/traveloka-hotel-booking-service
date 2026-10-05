@@ -90,7 +90,70 @@ public class DataInitializer implements CommandLineRunner {
                     "ON DUPLICATE KEY UPDATE name = VALUES(name), price_per_night = VALUES(price_per_night)";
             jdbcTemplate.execute(insertRoom103);
 
-            log.info("Initialized sample Hotel ID 1 and Room IDs 101, 102, 103 successfully.");
+            // Nạp Khách Sạn ID: 2 - Vinpearl Resort & Spa Đà Nẵng
+            String insertHotel2 = "INSERT INTO hotels (id, name, city, address, star_rating, description, thumbnail_url, amenities, created_at) " +
+                    "VALUES (2, 'Vinpearl Resort & Spa Đà Nẵng', 'Đà Nẵng', 'Đường Trường Sa, Ngũ Hành Sơn, Đà Nẵng', 5, " +
+                    "'Tọa lạc tại vị trí đắc địa trên bãi biển Non Nước nguyên sơ.', " +
+                    "'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&auto=format&fit=crop&q=60', " +
+                    "'Bãi biển riêng, Hồ bơi vô cực, Buffet quốc tế, Spa, Quầy bar', NOW()) " +
+                    "ON DUPLICATE KEY UPDATE name = VALUES(name)";
+            jdbcTemplate.execute(insertHotel2);
+            jdbcTemplate.execute("INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
+                    "VALUES (201, 2, 'Villa 2 Phòng Ngủ Hướng Biển Kèm Hồ Bơi Riêng', 4, 3500000.00, 'AVAILABLE') ON DUPLICATE KEY UPDATE name = VALUES(name)");
+            jdbcTemplate.execute("INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
+                    "VALUES (202, 2, 'Phòng Deluxe Hướng Đại Dương (Ocean View)', 2, 1800000.00, 'AVAILABLE') ON DUPLICATE KEY UPDATE name = VALUES(name)");
+
+            // Nạp Khách Sạn ID: 3 - Rex Hotel Sài Gòn
+            String insertHotel3 = "INSERT INTO hotels (id, name, city, address, star_rating, description, thumbnail_url, amenities, created_at) " +
+                    "VALUES (3, 'Rex Hotel Sài Gòn', 'Hồ Chí Minh', '141 Nguyễn Huệ, Bến Nghé, Quận 1, TP. Hồ Chí Minh', 5, " +
+                    "'Khách sạn kết hợp nét kiến trúc Pháp cổ điển ngay phố đi bộ Nguyễn Huệ.', " +
+                    "'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&auto=format&fit=crop&q=60', " +
+                    "'Vị trí Quận 1, Hồ bơi Rooftop, Rooftop Garden Bar, Buffet sáng', NOW()) " +
+                    "ON DUPLICATE KEY UPDATE name = VALUES(name)";
+            jdbcTemplate.execute(insertHotel3);
+            jdbcTemplate.execute("INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
+                    "VALUES (301, 3, 'Phòng Superior Cổ Điển Nhìn Ra Phố Đi Bộ', 2, 1100000.00, 'AVAILABLE') ON DUPLICATE KEY UPDATE name = VALUES(name)");
+            jdbcTemplate.execute("INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
+                    "VALUES (302, 3, 'Phòng Premium Governor Suite', 2, 2100000.00, 'AVAILABLE') ON DUPLICATE KEY UPDATE name = VALUES(name)");
+
+            // Nạp Khách Sạn ID: 4 - InterContinental Nha Trang
+            String insertHotel4 = "INSERT INTO hotels (id, name, city, address, star_rating, description, thumbnail_url, amenities, created_at) " +
+                    "VALUES (4, 'InterContinental Nha Trang', 'Nha Trang', '32-34 Trần Phú, Lộc Thọ, Nha Trang, Khánh Hòa', 5, " +
+                    "'Khách sạn quốc tế 5 sao nằm ngay cung đường biển Trần Phú đẹp nhất vịnh Nha Trang.', " +
+                    "'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&auto=format&fit=crop&q=60', " +
+                    "'Mặt biển Trần Phú, 3 Hồ bơi ngoài trời, Spa cao cấp, Buffet sáng', NOW()) " +
+                    "ON DUPLICATE KEY UPDATE name = VALUES(name)";
+            jdbcTemplate.execute(insertHotel4);
+            jdbcTemplate.execute("INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
+                    "VALUES (401, 4, 'Phòng Classic Ocean View Hướng Biển', 2, 1950000.00, 'AVAILABLE') ON DUPLICATE KEY UPDATE name = VALUES(name)");
+
+            // Nạp Khách Sạn ID: 5 - Dalat Edensee Lake Resort & Spa
+            String insertHotel5 = "INSERT INTO hotels (id, name, city, address, star_rating, description, thumbnail_url, amenities, created_at) " +
+                    "VALUES (5, 'Dalat Edensee Lake Resort & Spa', 'Đà Lạt', 'Khu chức năng VII.2, Hồ Tuyền Lâm, Đà Lạt, Lâm Đồng', 5, " +
+                    "'Ngôi làng châu Âu thơ mộng nép mình bên bờ hồ Tuyền Lâm.', " +
+                    "'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&fit=crop&q=60', " +
+                    "'View hồ Tuyền Lâm, Spa thảo dược, Xe điện đưa đón, Bắn cung', NOW()) " +
+                    "ON DUPLICATE KEY UPDATE name = VALUES(name)";
+            jdbcTemplate.execute(insertHotel5);
+            jdbcTemplate.execute("INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
+                    "VALUES (501, 5, 'Phòng Mimosa Superior Nhìn Ra Đồi Thông', 2, 1450000.00, 'AVAILABLE') ON DUPLICATE KEY UPDATE name = VALUES(name)");
+            jdbcTemplate.execute("INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
+                    "VALUES (502, 5, 'Biệt Thự Jasmine Luxury Lake View', 3, 2800000.00, 'AVAILABLE') ON DUPLICATE KEY UPDATE name = VALUES(name)");
+
+            // Nạp Khách Sạn ID: 6 - JW Marriott Phu Quoc Emerald Bay Resort & Spa
+            String insertHotel6 = "INSERT INTO hotels (id, name, city, address, star_rating, description, thumbnail_url, amenities, created_at) " +
+                    "VALUES (6, 'JW Marriott Phu Quoc Emerald Bay Resort & Spa', 'Đảo Phú Quốc', 'Bãi Khem, An Thới, TP. Phú Quốc, Kiên Giang', 5, " +
+                    "'Kiệt tác kiến trúc của kiến trúc sư Bill Bensley bên bờ biển Bãi Khem.', " +
+                    "'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&auto=format&fit=crop&q=60', " +
+                    "'Bãi biển Bãi Khem, Hồ bơi vỏ sò, Chanterelle Spa, Nhà hàng Pink Pearl', NOW()) " +
+                    "ON DUPLICATE KEY UPDATE name = VALUES(name)";
+            jdbcTemplate.execute(insertHotel6);
+            jdbcTemplate.execute("INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
+                    "VALUES (601, 6, 'Phòng Emerald Bay View Ban Công Riêng', 2, 4200000.00, 'AVAILABLE') ON DUPLICATE KEY UPDATE name = VALUES(name)");
+            jdbcTemplate.execute("INSERT INTO rooms (id, hotel_id, name, max_guests, price_per_night, status) " +
+                    "VALUES (602, 6, 'Turquoise Suite 1 Phòng Ngủ Thượng Hạng', 3, 6800000.00, 'AVAILABLE') ON DUPLICATE KEY UPDATE name = VALUES(name)");
+
+            log.info("Initialized sample Hotels (ID 1-6) and all corresponding rooms successfully.");
         } catch (Exception e) {
             log.warn("Notice during hotel and room seed initialization: {}", e.getMessage());
         }

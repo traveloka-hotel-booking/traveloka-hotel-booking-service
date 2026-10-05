@@ -83,6 +83,22 @@ public class AdminBookingController {
     }
 
     /**
+     * Nhận phòng linh hoạt: Cho phép chọn ngày nhận phòng thực tế (sớm hoặc trễ) và tính lại tổng tiền bill
+     */
+    @PutMapping("/{id}/checkin")
+    public ResponseEntity<ApiResponse<AdminBookingDto>> checkin(
+            @PathVariable Long id,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate actualCheckInDate
+    ) {
+        AdminBookingDto booking = bookingService.checkinAdmin(id, actualCheckInDate);
+        return ResponseEntity.ok(ApiResponse.<AdminBookingDto>builder()
+                .code(200)
+                .message("Hoàn tất thủ tục nhận phòng và cập nhật lịch lưu trú thành công")
+                .result(booking)
+                .build());
+    }
+
+    /**
      * Trả phòng linh hoạt: Cho phép chọn ngày trả phòng thực tế và tính lại tổng tiền bill
      */
     @PutMapping("/{id}/checkout")

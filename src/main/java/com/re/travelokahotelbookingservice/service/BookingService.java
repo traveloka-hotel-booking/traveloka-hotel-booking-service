@@ -25,6 +25,8 @@ public interface BookingService {
 
     AdminBookingDto payCashAdmin(Long bookingId);
 
+    AdminBookingDto checkinAdmin(Long bookingId, java.time.LocalDate actualCheckInDate);
+
     AdminBookingDto checkoutAdmin(Long bookingId, java.time.LocalDate actualCheckOutDate);
 
     void deleteBookingAdmin(Long id);
