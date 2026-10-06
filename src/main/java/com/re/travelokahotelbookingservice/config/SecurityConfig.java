@@ -60,7 +60,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/refresh",
                                 "/api/v1/customer/payments/vnpay-callback",
-                                "/error").permitAll()
+                                "/error",
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/api/v1/auth/logout",
                                 "/api/v1/auth/change-password").authenticated()
                         .requestMatchers("/api/v1/customer/**").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")

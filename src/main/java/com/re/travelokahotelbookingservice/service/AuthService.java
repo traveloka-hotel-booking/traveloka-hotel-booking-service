@@ -1,9 +1,6 @@
 package com.re.travelokahotelbookingservice.service;
 
-import com.re.travelokahotelbookingservice.dto.request.ChangePasswordRequest;
-import com.re.travelokahotelbookingservice.dto.request.LoginRequest;
-import com.re.travelokahotelbookingservice.dto.request.RefreshTokenRequest;
-import com.re.travelokahotelbookingservice.dto.request.UserRegisterRequest;
+import com.re.travelokahotelbookingservice.dto.request.*;
 import com.re.travelokahotelbookingservice.dto.response.LoginResponse;
 import com.re.travelokahotelbookingservice.dto.response.RefreshTokenResponse;
 import com.re.travelokahotelbookingservice.dto.response.UserRegisterResponse;
@@ -16,4 +13,6 @@ public interface AuthService {
     RefreshTokenResponse handleRefreshToken(RefreshTokenRequest request);
     void handleLogout(HttpServletRequest request, String refreshToken);
     void changePassword(Authentication authentication, HttpServletRequest requestHeader, ChangePasswordRequest request);
+    void forgotPassword(ForgotPasswordRequest request);
+    void resetPassword(ResetPasswordRequest request);
 }
