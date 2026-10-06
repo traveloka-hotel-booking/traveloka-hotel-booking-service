@@ -61,8 +61,12 @@ public class RedisConfig implements CachingConfigurer {
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer));
 
+        java.util.Map<String, RedisCacheConfiguration> initialCacheConfig = new java.util.HashMap<>();
+        initialCacheConfig.put("search_hotels", cacheConfig.entryTtl(Duration.ofMinutes(5)));
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(cacheConfig)
+                .withInitialCacheConfigurations(initialCacheConfig)
                 .build();
     }
 

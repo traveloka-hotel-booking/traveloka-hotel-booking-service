@@ -134,6 +134,10 @@ public class LoggingAspect {
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
-        return (ip != null && ip.contains(",")) ? ip.split(",")[0].trim() : ip;
+        String resolvedIp = (ip != null && ip.contains(",")) ? ip.split(",")[0].trim() : ip;
+        if ("0:0:0:0:0:0:0:1".equals(resolvedIp) || "::1".equals(resolvedIp)) {
+            return "127.0.0.1";
+        }
+        return resolvedIp;
     }
 }

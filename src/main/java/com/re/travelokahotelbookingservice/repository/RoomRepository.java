@@ -40,6 +40,29 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
             @Param("checkOut") LocalDate checkOut
     );
 
+    // FR-06: tìm phòng còn trống cho danh sách các khách sạn theo khoảng thời gian + số khách (Triệt tiêu N+1 Query)
+    @Query("""
+        SELECT r FROM Room r
+        WHERE r.hotel.id IN :hotelIds
+          AND r.maxGuests >= :guests
+          AND r.status = 'AVAILABLE'
+          AND r.id NOT IN (
+                SELECT b.room.id FROM Booking b
+                WHERE b.status IN (
+                    com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING,
+                    com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CONFIRMED,
+                    com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CHECKED_IN
+                )
+                AND (b.checkIn < :checkOut AND b.checkOut > :checkIn)
+          )
+    """)
+    List<Room> findAvailableRoomsByHotelIds(
+            @Param("hotelIds") List<Long> hotelIds,
+            @Param("guests") Integer guests,
+            @Param("checkIn") LocalDate checkIn,
+            @Param("checkOut") LocalDate checkOut
+    );
+
     //FR-07
     @Query("""
     SELECT MIN(r.pricePerNight)

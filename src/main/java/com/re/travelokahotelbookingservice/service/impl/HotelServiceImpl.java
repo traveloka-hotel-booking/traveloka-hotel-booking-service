@@ -2,6 +2,7 @@ package com.re.travelokahotelbookingservice.service.impl;
 
 import com.re.travelokahotelbookingservice.dto.request.HotelRequestDto;
 import com.re.travelokahotelbookingservice.dto.response.HotelResponseDto;
+import com.re.travelokahotelbookingservice.dto.response.RestPage;
 import com.re.travelokahotelbookingservice.dto.response.RoomResponseDto;
 import com.re.travelokahotelbookingservice.dto.hotel.HotelSearchResponseDto;
 import com.re.travelokahotelbookingservice.dto.hotel.HotelListItemDto;
@@ -74,7 +75,8 @@ public class HotelServiceImpl implements HotelService {
     @Override
     @Caching(evict = {
             @CacheEvict(value = "hotels_list", allEntries = true),
-            @CacheEvict(value = "hotel_detail", allEntries = true)
+            @CacheEvict(value = "hotel_detail", allEntries = true),
+            @CacheEvict(value = "search_hotels", allEntries = true)
     })
     @Transactional
     public HotelResponseDto createHotel(HotelRequestDto request) {
@@ -108,7 +110,8 @@ public class HotelServiceImpl implements HotelService {
     @Override
     @Caching(evict = {
             @CacheEvict(value = "hotel_detail", key = "#id"),
-            @CacheEvict(value = "hotels_list", allEntries = true)
+            @CacheEvict(value = "hotels_list", allEntries = true),
+            @CacheEvict(value = "search_hotels", allEntries = true)
     })
     @Transactional
     public HotelResponseDto updateHotel(Long id, HotelRequestDto request) {
@@ -159,7 +162,8 @@ public class HotelServiceImpl implements HotelService {
     @Caching(evict = {
             @CacheEvict(value = "hotel_detail", key = "#id"),
             @CacheEvict(value = "hotels_list", allEntries = true),
-            @CacheEvict(value = "hotel_rooms", key = "#id")
+            @CacheEvict(value = "hotel_rooms", key = "#id"),
+            @CacheEvict(value = "search_hotels", allEntries = true)
     })
     @Transactional
     public void deleteHotel(Long id) {
@@ -241,7 +245,8 @@ public class HotelServiceImpl implements HotelService {
     @Override
     @Caching(evict = {
             @CacheEvict(value = "hotel_detail", key = "#id"),
-            @CacheEvict(value = "hotels_list", allEntries = true)
+            @CacheEvict(value = "hotels_list", allEntries = true),
+            @CacheEvict(value = "search_hotels", allEntries = true)
     })
     @Transactional
     public HotelResponseDto updateThumbnail(Long id, MultipartFile file) {
@@ -267,6 +272,10 @@ public class HotelServiceImpl implements HotelService {
 
     // FR-06: Search Hotels
     @Override
+    @Cacheable(
+            value = "search_hotels",
+            key = "(#city != null ? #city.toLowerCase().trim() : 'ALL') + '_' + #checkIn + '_' + #checkOut + '_' + #guests + '_' + (#pageable != null ? #pageable.pageNumber : 0) + '_' + (#pageable != null ? #pageable.pageSize : 10)"
+    )
     public Page<HotelSearchResponseDto> searchHotels(
             String city,
             LocalDate checkIn,
@@ -274,6 +283,9 @@ public class HotelServiceImpl implements HotelService {
             Integer guests,
             Pageable pageable
     ) {
+        if (pageable == null) {
+            pageable = PageRequest.of(0, 20, Sort.by("name").ascending());
+        }
 
         // 1. Build Specification lọc theo city
         Specification<Hotel> spec = (root, query, cb) -> {
@@ -291,23 +303,32 @@ public class HotelServiceImpl implements HotelService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        if (pageable == null) {
-            pageable = PageRequest.of(0, 20, Sort.by("name").ascending());
+        Page<Hotel> hotelPage = hotelRepository.findAll(spec, pageable);
+        List<Hotel> hotels = hotelPage.getContent();
+
+        if (hotels.isEmpty()) {
+            return new RestPage<>(Collections.emptyList(), pageable, 0);
         }
 
-        Page<Hotel> hotelPage = hotelRepository.findAll(spec, pageable);
+        // 2. Lấy danh sách ID các khách sạn trong trang hiện tại
+        List<Long> hotelIds = hotels.stream().map(Hotel::getId).toList();
 
-        // 2. Map sang DTO, chỉ giữ hotel có phòng còn trống
-        List<HotelSearchResponseDto> content = hotelPage.getContent().stream()
+        // 3. Triệt tiêu N+1 Query: Batch query tìm tất cả phòng trống cho các khách sạn trong 1 câu SQL duy nhất
+        List<Room> allAvailableRooms = roomRepository.findAvailableRoomsByHotelIds(
+                hotelIds,
+                guests,
+                checkIn,
+                checkOut
+        );
+
+        // Gom nhóm danh sách phòng theo hotelId trong bộ nhớ RAM
+        Map<Long, List<Room>> roomsByHotelId = allAvailableRooms.stream()
+                .collect(Collectors.groupingBy(r -> r.getHotel().getId()));
+
+        // 4. Map sang DTO, chỉ giữ hotel có phòng còn trống
+        List<HotelSearchResponseDto> content = hotels.stream()
                 .map(hotel -> {
-
-                    // Dùng JPQL kiểm tra phòng còn trống đúng FR-06
-                    List<Room> availableRooms = roomRepository.findAvailableRooms(
-                            hotel.getId(),
-                            guests,
-                            checkIn,
-                            checkOut
-                    );
+                    List<Room> availableRooms = roomsByHotelId.getOrDefault(hotel.getId(), Collections.emptyList());
 
                     // Nếu không có phòng phù hợp → loại hotel
                     if (availableRooms.isEmpty()) {
@@ -333,8 +354,7 @@ public class HotelServiceImpl implements HotelService {
                 .filter(Objects::nonNull)
                 .toList();
 
-        return new PageImpl<>(content, pageable, content.size());
-
+        return new RestPage<>(content, pageable, content.size());
     }
 
     //FR-07
