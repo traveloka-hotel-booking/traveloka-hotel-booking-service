@@ -13,6 +13,7 @@ import com.re.travelokahotelbookingservice.repository.RoomRepository;
 import com.re.travelokahotelbookingservice.repository.UserRepository;
 import com.re.travelokahotelbookingservice.service.BookingService;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -44,6 +45,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @CacheEvict(value = "search_hotels", allEntries = true)
     @Transactional
     public BookingResponseDto createBooking(BookingRequestDto request, String currentUsername) {
 
@@ -370,6 +372,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @CacheEvict(value = "search_hotels", allEntries = true)
     @Transactional
     public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto cancelBookingCustomer(Long bookingId, String currentUsername) {
         User user = userRepository.findByEmail(currentUsername)
