@@ -38,14 +38,14 @@ public class RoomServiceImpl implements RoomService {
         List<Room> rooms;
         if (hotelId != null) {
             if (status != null && !status.isBlank()) {
-                rooms = roomRepository.findByHotelIdAndStatus(hotelId, status.toUpperCase());
+                rooms = roomRepository.findByHotelIdAndStatusWithHotel(hotelId, status.toUpperCase());
             } else {
-                rooms = roomRepository.findByHotelId(hotelId);
+                rooms = roomRepository.findByHotelIdWithHotel(hotelId);
             }
         } else if (status != null && !status.isBlank()) {
-            rooms = roomRepository.findByStatus(status.toUpperCase());
+            rooms = roomRepository.findByStatusWithHotel(status.toUpperCase());
         } else {
-            rooms = roomRepository.findAll();
+            rooms = roomRepository.findAllWithHotel();
         }
 
         return rooms.stream().map(this::mapToDto).collect(Collectors.toList());

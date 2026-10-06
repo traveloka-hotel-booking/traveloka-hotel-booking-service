@@ -29,6 +29,37 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("checkOut") LocalDate checkOut
     );
 
+    @Query("""
+        SELECT b FROM Booking b
+        JOIN FETCH b.user u
+        JOIN FETCH b.room r
+        JOIN FETCH r.hotel h
+        LEFT JOIN FETCH b.payment p
+        ORDER BY b.createdAt DESC
+    """)
+    List<Booking> findAllWithDetails();
+
+    @Query("""
+        SELECT b FROM Booking b
+        JOIN FETCH b.user u
+        JOIN FETCH b.room r
+        JOIN FETCH r.hotel h
+        LEFT JOIN FETCH b.payment p
+        WHERE b.user.id = :userId
+        ORDER BY b.createdAt DESC
+    """)
+    List<Booking> findByUserIdWithDetails(@Param("userId") Long userId);
+
+    @Query("""
+        SELECT b FROM Booking b
+        JOIN FETCH b.user u
+        JOIN FETCH b.room r
+        JOIN FETCH r.hotel h
+        LEFT JOIN FETCH b.payment p
+        WHERE b.id = :id
+    """)
+    java.util.Optional<Booking> findByIdWithDetails(@Param("id") Long id);
+
     List<Booking> findAllByOrderByCreatedAtDesc();
 
     List<Booking> findByUserIdOrderByCreatedAtDesc(Long userId);

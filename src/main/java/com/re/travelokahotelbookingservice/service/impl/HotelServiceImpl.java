@@ -407,23 +407,32 @@ public class HotelServiceImpl implements HotelService {
         };
 
         Page<Hotel> hotelPage = hotelRepository.findAll(spec, pageable);
+        List<Hotel> hotels = hotelPage.getContent();
 
-        List<HotelListItemDto> content = hotelPage.getContent().stream()
-                .map(hotel -> {
+        if (hotels.isEmpty()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+        }
 
-                    // Lấy minPrice từ RoomRepository
-                    BigDecimal minPrice = roomRepository.findMinPriceByHotelId(hotel.getId());
+        // Triệt tiêu N+1 Query: Lấy giá phòng thấp nhất của tất cả khách sạn trong 1 câu SQL duy nhất
+        List<Long> hotelIds = hotels.stream().map(Hotel::getId).toList();
+        List<Object[]> minPriceRows = roomRepository.findMinPricesByHotelIds(hotelIds);
+        Map<Long, BigDecimal> minPriceMap = minPriceRows.stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (BigDecimal) row[1],
+                        (existing, replacement) -> existing
+                ));
 
-                    return HotelListItemDto.builder()
-                            .id(hotel.getId())
-                            .name(hotel.getName())
-                            .city(hotel.getCity())
-                            .address(hotel.getAddress())
-                            .starRating(hotel.getStarRating())
-                            .thumbnailUrl(hotel.getThumbnailUrl())
-                            .minPricePerNight(minPrice)
-                            .build();
-                })
+        List<HotelListItemDto> content = hotels.stream()
+                .map(hotel -> HotelListItemDto.builder()
+                        .id(hotel.getId())
+                        .name(hotel.getName())
+                        .city(hotel.getCity())
+                        .address(hotel.getAddress())
+                        .starRating(hotel.getStarRating())
+                        .thumbnailUrl(hotel.getThumbnailUrl())
+                        .minPricePerNight(minPriceMap.get(hotel.getId()))
+                        .build())
                 .toList();
 
         return new PageImpl<>(content, pageable, hotelPage.getTotalElements());

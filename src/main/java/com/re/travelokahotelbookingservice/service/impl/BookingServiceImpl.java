@@ -119,7 +119,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public List<com.re.travelokahotelbookingservice.dto.response.AdminBookingDto> getAllBookingsAdmin() {
-        List<Booking> bookings = bookingRepository.findAllByOrderByCreatedAtDesc();
+        List<Booking> bookings = bookingRepository.findAllWithDetails();
         syncExpiredBookings(bookings);
         return bookings.stream()
                 .map(this::mapToAdminBookingDto)
@@ -128,7 +128,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto getBookingByIdAdmin(Long id) {
-        Booking booking = bookingRepository.findById(id)
+        Booking booking = bookingRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đơn đặt phòng có ID: " + id));
         return mapToAdminBookingDto(booking);
     }
@@ -364,7 +364,7 @@ public class BookingServiceImpl implements BookingService {
                 .or(() -> userRepository.findByUsername(currentUsername))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + currentUsername));
 
-        List<Booking> bookings = bookingRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        List<Booking> bookings = bookingRepository.findByUserIdWithDetails(user.getId());
         syncExpiredBookings(bookings);
         return bookings.stream()
                 .map(this::mapToAdminBookingDto)
