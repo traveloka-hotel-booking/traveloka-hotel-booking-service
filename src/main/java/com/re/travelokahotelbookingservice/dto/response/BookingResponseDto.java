@@ -1,4 +1,4 @@
-package com.re.travelokahotelbookingservice.dto;
+package com.re.travelokahotelbookingservice.dto.response;
 
 import lombok.Data;
 import java.math.BigDecimal;
