@@ -11,6 +11,9 @@ import com.re.travelokahotelbookingservice.service.RoomService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -49,6 +52,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Cacheable(value = "hotel_rooms", key = "#hotelId")
     @Transactional(readOnly = true)
     public List<RoomResponseDto> getRoomsByHotelId(Long hotelId) {
         return roomRepository.findByHotelId(hotelId).stream()
@@ -57,6 +61,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Cacheable(value = "room_detail", key = "#id")
     @Transactional(readOnly = true)
     public RoomResponseDto getRoomById(Long id) {
         Room room = roomRepository.findById(id)
@@ -65,6 +70,11 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "hotel_rooms", key = "#result.hotelId"),
+            @CacheEvict(value = "hotel_detail", key = "#result.hotelId"),
+            @CacheEvict(value = "hotels_list", allEntries = true)
+    })
     @Transactional
     public RoomResponseDto createRoom(RoomRequestDto request) {
         Hotel hotel = hotelRepository.findById(request.getHotelId())
@@ -88,6 +98,12 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "room_detail", key = "#id"),
+            @CacheEvict(value = "hotel_rooms", key = "#result.hotelId"),
+            @CacheEvict(value = "hotel_detail", key = "#result.hotelId"),
+            @CacheEvict(value = "hotels_list", allEntries = true)
+    })
     @Transactional
     public RoomResponseDto updateRoom(Long id, RoomRequestDto request) {
         Room room = roomRepository.findById(id)
@@ -122,6 +138,12 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "room_detail", key = "#id"),
+            @CacheEvict(value = "hotel_rooms", allEntries = true),
+            @CacheEvict(value = "hotel_detail", allEntries = true),
+            @CacheEvict(value = "hotels_list", allEntries = true)
+    })
     @Transactional
     public void deleteRoom(Long id) {
         Room room = roomRepository.findById(id)
@@ -148,6 +170,11 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "room_detail", key = "#id"),
+            @CacheEvict(value = "hotel_rooms", key = "#result.hotelId"),
+            @CacheEvict(value = "hotel_detail", key = "#result.hotelId")
+    })
     @Transactional
     public RoomResponseDto updateRoomImage(Long id, MultipartFile file) {
         Room room = roomRepository.findById(id)
