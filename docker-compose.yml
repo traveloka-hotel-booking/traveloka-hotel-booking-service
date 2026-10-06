@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 1. Máy chủ Redis Server (In-Memory Data Store & Caching)
   redis:

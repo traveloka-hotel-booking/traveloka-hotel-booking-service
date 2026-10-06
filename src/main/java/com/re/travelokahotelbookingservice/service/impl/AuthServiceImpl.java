@@ -109,11 +109,11 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public RefreshTokenResponse handleRefreshToken(RefreshTokenRequest request) {
         RefreshToken refreshToken = refreshTokenRepository.findByRefreshToken(request.getRefreshToken())
-                .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
+                .orElseThrow(() -> new BusinessException("Refresh token không hợp lệ hoặc không tồn tại trong hệ thống!"));
 
         if(refreshToken.getExpiryDate().isBefore(Instant.now())) {
             refreshTokenRepository.delete(refreshToken);
-            throw new RuntimeException("Refresh token was expired. Please make a new login request");
+            throw new BusinessException("Refresh token đã hết hạn. Vui lòng đăng nhập lại!");
         }
 
         User user = refreshToken.getUser();
