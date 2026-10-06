@@ -13,6 +13,19 @@ import java.math.BigDecimal;
 
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long> {
+
+    @Query("SELECT r FROM Room r JOIN FETCH r.hotel h ORDER BY r.id DESC")
+    List<Room> findAllWithHotel();
+
+    @Query("SELECT r FROM Room r JOIN FETCH r.hotel h WHERE r.hotel.id = :hotelId ORDER BY r.id DESC")
+    List<Room> findByHotelIdWithHotel(@Param("hotelId") Long hotelId);
+
+    @Query("SELECT r FROM Room r JOIN FETCH r.hotel h WHERE r.status = :status ORDER BY r.id DESC")
+    List<Room> findByStatusWithHotel(@Param("status") String status);
+
+    @Query("SELECT r FROM Room r JOIN FETCH r.hotel h WHERE r.hotel.id = :hotelId AND r.status = :status ORDER BY r.id DESC")
+    List<Room> findByHotelIdAndStatusWithHotel(@Param("hotelId") Long hotelId, @Param("status") String status);
+
     List<Room> findByHotelId(Long hotelId);
     List<Room> findByHotelIdAndStatus(Long hotelId, String status);
     List<Room> findByStatus(String status);
@@ -72,4 +85,12 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
 
     BigDecimal findMinPriceByHotelId(@Param("hotelId") Long hotelId);
+
+    @Query("""
+        SELECT r.hotel.id, MIN(r.pricePerNight)
+        FROM Room r
+        WHERE r.hotel.id IN :hotelIds
+        GROUP BY r.hotel.id
+    """)
+    List<Object[]> findMinPricesByHotelIds(@Param("hotelIds") List<Long> hotelIds);
 }
