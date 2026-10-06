@@ -1,7 +1,7 @@
 package com.re.travelokahotelbookingservice.service.impl;
 
 import com.re.travelokahotelbookingservice.dto.request.BookingRequestDto;
-import com.re.travelokahotelbookingservice.dto.BookingResponseDto;
+import com.re.travelokahotelbookingservice.dto.response.BookingResponseDto;
 import com.re.travelokahotelbookingservice.entity.Booking;
 import com.re.travelokahotelbookingservice.entity.Hotel;
 import com.re.travelokahotelbookingservice.entity.Payment;
