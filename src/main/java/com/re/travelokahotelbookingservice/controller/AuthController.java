@@ -56,9 +56,9 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<ApiResponse<?>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        authService.forgotPassword(request);
-        ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Gửi mail reset password thành công");
+    public ResponseEntity<ApiResponse<String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        String resetToken = authService.forgotPassword(request);
+        ApiResponse<String> apiResponse = new ApiResponse<>(200, "SUCCESS", "Gửi mail reset password thành công", resetToken);
         return ResponseEntity.ok().body(apiResponse);
     }
 
