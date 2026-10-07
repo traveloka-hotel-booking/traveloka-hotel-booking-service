@@ -77,10 +77,18 @@ public class UserServiceImpl implements UserService {
     public String updateAvatar(MultipartFile file, Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        String oldAvatarUrl = user.getAvatarUrl();
+
         Map uploadImage = cloudinaryService.uploadImage(file, user.getId());
         String avatarUrl = uploadImage.get("secure_url").toString();
         user.setAvatarUrl(avatarUrl);
         userRepository.save(user);
+
+        // Dọn dẹp ảnh cũ trên Cloudinary chạy nền ngầm không làm chậm luồng người dùng
+        if (oldAvatarUrl != null && !oldAvatarUrl.isBlank() && !oldAvatarUrl.equals(avatarUrl)) {
+            cloudinaryService.deleteImageAsync(oldAvatarUrl);
+        }
+
         return avatarUrl;
     }
 }
