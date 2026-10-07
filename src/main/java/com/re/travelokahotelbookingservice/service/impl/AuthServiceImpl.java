@@ -190,7 +190,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public String forgotPassword(ForgotPasswordRequest request) {
+    public void forgotPassword(ForgotPasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail()).orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         String resetToken = UUID.randomUUID().toString();
@@ -202,7 +202,6 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         resetPasswordTokenRepository.save(resetPasswordToken);
         emailService.sendEmail(request.getEmail(), resetToken);
-        return resetToken;
     }
 
     @Transactional

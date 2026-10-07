@@ -13,6 +13,6 @@ public interface AuthService {
     RefreshTokenResponse handleRefreshToken(RefreshTokenRequest request);
     void handleLogout(HttpServletRequest request, String refreshToken);
     void changePassword(Authentication authentication, HttpServletRequest requestHeader, ChangePasswordRequest request);
-    String forgotPassword(ForgotPasswordRequest request);
+    void forgotPassword(ForgotPasswordRequest request);
     void resetPassword(ResetPasswordRequest request);
 }
