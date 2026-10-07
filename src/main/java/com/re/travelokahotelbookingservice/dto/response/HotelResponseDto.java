@@ -10,7 +10,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class HotelResponseDto {
+public class HotelResponseDto implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     private Long id;
     private String name;
     private String description;
@@ -18,6 +19,7 @@ public class HotelResponseDto {
     private String city;
     private Integer starRating;
     private String thumbnailUrl;
+    private List<String> images;
     private String amenities;
     private BigDecimal minPrice;
     private Integer totalRooms;

@@ -113,11 +113,11 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public RefreshTokenResponse handleRefreshToken(RefreshTokenRequest request) {
         RefreshToken refreshToken = refreshTokenRepository.findByRefreshToken(request.getRefreshToken())
-                .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
+                .orElseThrow(() -> new BusinessException("Refresh token không hợp lệ hoặc không tồn tại trong hệ thống!"));
 
         if(refreshToken.getExpiryDate().isBefore(Instant.now())) {
             refreshTokenRepository.delete(refreshToken);
-            throw new RuntimeException("Refresh token was expired. Please make a new login request");
+            throw new BusinessException("Refresh token đã hết hạn. Vui lòng đăng nhập lại!");
         }
 
         User user = refreshToken.getUser();
@@ -210,6 +210,10 @@ public class AuthServiceImpl implements AuthService {
        ResetPasswordToken resetPasswordToken = resetPasswordTokenRepository.findByResetToken(request.getToken())
                .orElseThrow(() -> new EntityNotFoundException("Reset token không hợp lệ"));
 
+       if(resetPasswordToken.isUsed()) {
+           throw new IllegalStateException("Liên kết đặt lại mật khẩu đã được sử dụng");
+       }
+
        if(resetPasswordToken.getExpiryDate().isBefore(LocalDateTime.now())) {
            throw new IllegalStateException("Reset token đã hết hạn");
        }
@@ -219,6 +223,8 @@ public class AuthServiceImpl implements AuthService {
        userRepository.save(user);
        resetPasswordToken.setUsed(true);
        resetPasswordTokenRepository.save(resetPasswordToken);
+
+       refreshTokenRepository.deleteByUserId(user.getId());
     }
 
 

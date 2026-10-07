@@ -56,16 +56,16 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<ApiResponse<?>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+    public ResponseEntity<ApiResponse<?>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request);
         ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Gửi mail reset password thành công");
         return ResponseEntity.ok().body(apiResponse);
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<ApiResponse<?>> resetPassword(@RequestBody ResetPasswordRequest request) {
+    public ResponseEntity<ApiResponse<?>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
-        ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Cật nhật mật khẩu mới thành công");
+        ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Cập nhật mật khẩu mới thành công");
         return ResponseEntity.ok().body(apiResponse);
     }
 }

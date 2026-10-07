@@ -9,7 +9,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RoomResponseDto {
+public class RoomResponseDto implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     private Long id;
     private Long hotelId;
     private String hotelName;
