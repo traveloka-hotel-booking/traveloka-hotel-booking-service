@@ -296,10 +296,11 @@ public class HotelServiceImpl implements HotelService {
             List<Predicate> predicates = new ArrayList<>();
 
             if (city != null && !city.isBlank()) {
+                String searchCity = normalizeCityKeyword(city);
                 predicates.add(
                         cb.like(
                                 cb.lower(root.get("city")),
-                                "%" + city.toLowerCase() + "%"
+                                "%" + searchCity.toLowerCase() + "%"
                         )
                 );
             }
@@ -374,10 +375,11 @@ public class HotelServiceImpl implements HotelService {
 
             // Lọc theo city
             if (filter.getCity() != null && !filter.getCity().isBlank()) {
+                String searchCity = normalizeCityKeyword(filter.getCity());
                 predicates.add(
                         cb.like(
                                 cb.lower(root.get("city")),
-                                "%" + filter.getCity().toLowerCase() + "%"
+                                "%" + searchCity.toLowerCase() + "%"
                         )
                 );
             }
@@ -444,6 +446,30 @@ public class HotelServiceImpl implements HotelService {
                 .toList();
 
         return new RestPage<>(content, pageable, hotelPage.getTotalElements());
+    }
+
+    /**
+     * Chuẩn hóa từ khóa thành phố để tương thích linh hoạt giữa người dùng nhập và CSDL
+     * Ví dụ: "TP. Hồ Chí Minh", "Thành phố Hồ Chí Minh", "Sài Gòn", "Đảo Phú Quốc",...
+     */
+    private String normalizeCityKeyword(String city) {
+        if (city == null || city.isBlank()) {
+            return "";
+        }
+        String clean = city.trim();
+        String lower = clean.toLowerCase();
+        if (lower.startsWith("tp.") || lower.startsWith("tp ")) {
+            clean = clean.substring(clean.indexOf(' ') + 1).trim();
+        } else if (lower.startsWith("thành phố ")) {
+            clean = clean.substring("thành phố ".length()).trim();
+        } else if (lower.startsWith("tỉnh ")) {
+            clean = clean.substring("tỉnh ".length()).trim();
+        } else if (lower.startsWith("đảo ")) {
+            clean = clean.substring("đảo ".length()).trim();
+        } else if (lower.equals("sài gòn") || lower.equals("sai gon") || lower.equals("hcm") || lower.equals("tphcm")) {
+            clean = "Hồ Chí Minh";
+        }
+        return clean;
     }
 
 }
