@@ -74,7 +74,8 @@ public class RoomServiceImpl implements RoomService {
             @CacheEvict(value = "hotel_rooms", key = "#result.hotelId"),
             @CacheEvict(value = "hotel_detail", key = "#result.hotelId"),
             @CacheEvict(value = "hotels_list", allEntries = true),
-            @CacheEvict(value = "search_hotels", allEntries = true)
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "filter_hotels", allEntries = true)
     })
     @Transactional
     public RoomResponseDto createRoom(RoomRequestDto request) {
@@ -104,7 +105,8 @@ public class RoomServiceImpl implements RoomService {
             @CacheEvict(value = "hotel_rooms", key = "#result.hotelId"),
             @CacheEvict(value = "hotel_detail", key = "#result.hotelId"),
             @CacheEvict(value = "hotels_list", allEntries = true),
-            @CacheEvict(value = "search_hotels", allEntries = true)
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "filter_hotels", allEntries = true)
     })
     @Transactional
     public RoomResponseDto updateRoom(Long id, RoomRequestDto request) {
@@ -145,7 +147,8 @@ public class RoomServiceImpl implements RoomService {
             @CacheEvict(value = "hotel_rooms", allEntries = true),
             @CacheEvict(value = "hotel_detail", allEntries = true),
             @CacheEvict(value = "hotels_list", allEntries = true),
-            @CacheEvict(value = "search_hotels", allEntries = true)
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "filter_hotels", allEntries = true)
     })
     @Transactional
     public void deleteRoom(Long id) {
