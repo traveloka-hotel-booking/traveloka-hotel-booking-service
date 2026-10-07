@@ -7,9 +7,14 @@ import com.re.travelokahotelbookingservice.dto.response.RoomResponseDto;
 import com.re.travelokahotelbookingservice.dto.hotel.HotelSearchResponseDto;
 import com.re.travelokahotelbookingservice.dto.hotel.HotelListItemDto;
 import com.re.travelokahotelbookingservice.dto.hotel.HotelFilterRequest;
+import com.re.travelokahotelbookingservice.entity.Booking;
 import com.re.travelokahotelbookingservice.entity.Hotel;
 import com.re.travelokahotelbookingservice.entity.Room;
+import com.re.travelokahotelbookingservice.entity.enums.BookingStatus;
+import com.re.travelokahotelbookingservice.exception.BusinessException;
+import com.re.travelokahotelbookingservice.repository.BookingRepository;
 import com.re.travelokahotelbookingservice.repository.HotelRepository;
+import com.re.travelokahotelbookingservice.repository.PaymentRepository;
 import com.re.travelokahotelbookingservice.repository.RoomRepository;
 import com.re.travelokahotelbookingservice.service.CloudinaryService;
 import com.re.travelokahotelbookingservice.service.HotelService;
@@ -45,6 +50,8 @@ public class HotelServiceImpl implements HotelService {
     private final HotelRepository hotelRepository;
     private final RoomRepository roomRepository;
     private final CloudinaryService cloudinaryService;
+    private final BookingRepository bookingRepository;
+    private final PaymentRepository paymentRepository;
 
 
     @Override
@@ -81,13 +88,22 @@ public class HotelServiceImpl implements HotelService {
     })
     @Transactional
     public HotelResponseDto createHotel(HotelRequestDto request) {
+        String rawImages = request.getImages();
+        String thumb = request.getThumbnailUrl();
+        if ((thumb == null || thumb.isBlank()) && rawImages != null && !rawImages.isBlank()) {
+            thumb = rawImages.split(",")[0].trim();
+        } else if ((rawImages == null || rawImages.isBlank()) && thumb != null && !thumb.isBlank()) {
+            rawImages = thumb;
+        }
+
         Hotel hotel = Hotel.builder()
                 .name(request.getName().trim())
                 .description(request.getDescription())
                 .address(request.getAddress().trim())
                 .city(request.getCity().trim())
                 .starRating(request.getStarRating() != null ? request.getStarRating() : 5)
-                .thumbnailUrl(request.getThumbnailUrl())
+                .thumbnailUrl(thumb)
+                .images(rawImages)
                 .amenities(request.getAmenities())
                 .build();
 
@@ -130,6 +146,12 @@ public class HotelServiceImpl implements HotelService {
         if (request.getThumbnailUrl() != null) {
             hotel.setThumbnailUrl(request.getThumbnailUrl());
         }
+        if (request.getImages() != null) {
+            hotel.setImages(request.getImages());
+            if ((hotel.getThumbnailUrl() == null || hotel.getThumbnailUrl().isBlank()) && !request.getImages().isBlank()) {
+                hotel.setThumbnailUrl(request.getImages().split(",")[0].trim());
+            }
+        }
         if (request.getAmenities() != null) {
             hotel.setAmenities(request.getAmenities());
         }
@@ -164,7 +186,8 @@ public class HotelServiceImpl implements HotelService {
     @Caching(evict = {
             @CacheEvict(value = "hotel_detail", key = "#id"),
             @CacheEvict(value = "hotels_list", allEntries = true),
-            @CacheEvict(value = "hotel_rooms", key = "#id"),
+            @CacheEvict(value = "hotel_rooms", allEntries = true),
+            @CacheEvict(value = "room_detail", allEntries = true),
             @CacheEvict(value = "search_hotels", allEntries = true),
             @CacheEvict(value = "filter_hotels", allEntries = true)
     })
@@ -174,8 +197,39 @@ public class HotelServiceImpl implements HotelService {
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khách sạn với ID: " + id));
 
         List<Room> rooms = roomRepository.findByHotelId(id);
-        if (!rooms.isEmpty()) {
-            roomRepository.deleteAll(rooms);
+
+        // 1. Kiểm tra toàn bộ các phòng xem có khách đang ở hoặc có đơn đặt phòng đang hoạt động không
+        for (Room r : rooms) {
+            if (r.getStatus() != null) {
+                if ("OCCUPIED".equalsIgnoreCase(r.getStatus())) {
+                    throw new BusinessException("Không thể xóa khách sạn vì phòng '" + r.getName() + "' đang có khách lưu trú.");
+                }
+                if ("BOOKED".equalsIgnoreCase(r.getStatus())) {
+                    throw new BusinessException("Không thể xóa khách sạn vì phòng '" + r.getName() + "' đang có khách đặt phòng.");
+                }
+            }
+            List<Booking> activeBookings = bookingRepository.findActiveBookingsByRoomId(r.getId());
+            if (!activeBookings.isEmpty()) {
+                boolean hasCheckedIn = activeBookings.stream()
+                        .anyMatch(b -> BookingStatus.CHECKED_IN.equals(b.getStatus()));
+                if (hasCheckedIn) {
+                    throw new BusinessException("Không thể xóa khách sạn vì phòng '" + r.getName() + "' đang có khách lưu trú (Check-in).");
+                } else {
+                    throw new BusinessException("Không thể xóa khách sạn vì phòng '" + r.getName() + "' đang có đơn đặt phòng hoạt động.");
+                }
+            }
+        }
+
+        // 2. Dọn dẹp đơn đặt phòng lịch sử (COMPLETED, CANCELLED, EXPIRED) và thanh toán liên quan trước khi xóa phòng
+        for (Room r : rooms) {
+            List<Booking> historicalBookings = bookingRepository.findByRoomId(r.getId());
+            for (Booking b : historicalBookings) {
+                if (b.getPayment() != null) {
+                    paymentRepository.delete(b.getPayment());
+                }
+                bookingRepository.delete(b);
+            }
+            roomRepository.delete(r);
         }
 
         hotelRepository.delete(hotel);
@@ -197,6 +251,7 @@ public class HotelServiceImpl implements HotelService {
                 .city(hotel.getCity())
                 .starRating(hotel.getStarRating())
                 .thumbnailUrl(hotel.getThumbnailUrl())
+                .images(hotel.getImageList())
                 .amenities(hotel.getAmenities())
                 .minPrice(minPrice)
                 .totalRooms(rooms.size())
@@ -237,6 +292,7 @@ public class HotelServiceImpl implements HotelService {
                 .city(hotel.getCity())
                 .starRating(hotel.getStarRating())
                 .thumbnailUrl(hotel.getThumbnailUrl())
+                .images(hotel.getImageList())
                 .amenities(hotel.getAmenities())
                 .minPrice(minPrice)
                 .totalRooms(rooms.size())
@@ -296,10 +352,11 @@ public class HotelServiceImpl implements HotelService {
             List<Predicate> predicates = new ArrayList<>();
 
             if (city != null && !city.isBlank()) {
+                String searchCity = normalizeCityKeyword(city);
                 predicates.add(
                         cb.like(
                                 cb.lower(root.get("city")),
-                                "%" + city.toLowerCase() + "%"
+                                "%" + searchCity.toLowerCase() + "%"
                         )
                 );
             }
@@ -352,6 +409,7 @@ public class HotelServiceImpl implements HotelService {
                             .address(hotel.getAddress())
                             .starRating(hotel.getStarRating())
                             .thumbnailUrl(hotel.getThumbnailUrl())
+                            .images(hotel.getImageList())
                             .minPricePerNight(minPrice)
                             .build();
                 })
@@ -374,10 +432,11 @@ public class HotelServiceImpl implements HotelService {
 
             // Lọc theo city
             if (filter.getCity() != null && !filter.getCity().isBlank()) {
+                String searchCity = normalizeCityKeyword(filter.getCity());
                 predicates.add(
                         cb.like(
                                 cb.lower(root.get("city")),
-                                "%" + filter.getCity().toLowerCase() + "%"
+                                "%" + searchCity.toLowerCase() + "%"
                         )
                 );
             }
@@ -439,11 +498,36 @@ public class HotelServiceImpl implements HotelService {
                         .address(hotel.getAddress())
                         .starRating(hotel.getStarRating())
                         .thumbnailUrl(hotel.getThumbnailUrl())
+                        .images(hotel.getImageList())
                         .minPricePerNight(minPriceMap.get(hotel.getId()))
                         .build())
                 .toList();
 
         return new RestPage<>(content, pageable, hotelPage.getTotalElements());
+    }
+
+    /**
+     * Chuẩn hóa từ khóa thành phố để tương thích linh hoạt giữa người dùng nhập và CSDL
+     * Ví dụ: "TP. Hồ Chí Minh", "Thành phố Hồ Chí Minh", "Sài Gòn", "Đảo Phú Quốc",...
+     */
+    private String normalizeCityKeyword(String city) {
+        if (city == null || city.isBlank()) {
+            return "";
+        }
+        String clean = city.trim();
+        String lower = clean.toLowerCase();
+        if (lower.startsWith("tp.") || lower.startsWith("tp ")) {
+            clean = clean.substring(clean.indexOf(' ') + 1).trim();
+        } else if (lower.startsWith("thành phố ")) {
+            clean = clean.substring("thành phố ".length()).trim();
+        } else if (lower.startsWith("tỉnh ")) {
+            clean = clean.substring("tỉnh ".length()).trim();
+        } else if (lower.startsWith("đảo ")) {
+            clean = clean.substring("đảo ".length()).trim();
+        } else if (lower.equals("sài gòn") || lower.equals("sai gon") || lower.equals("hcm") || lower.equals("tphcm")) {
+            clean = "Hồ Chí Minh";
+        }
+        return clean;
     }
 
 }

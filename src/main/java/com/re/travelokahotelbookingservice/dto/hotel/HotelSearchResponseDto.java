@@ -15,5 +15,6 @@ public class HotelSearchResponseDto implements java.io.Serializable {
     private String address;
     private Integer starRating;
     private String thumbnailUrl;
+    private java.util.List<String> images;
     private BigDecimal minPricePerNight;
 }

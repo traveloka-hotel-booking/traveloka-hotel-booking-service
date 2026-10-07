@@ -71,6 +71,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(apiResponse);
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<?>> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMessage());
+        String msg = "Không thể xóa hoặc thay đổi dữ liệu do đang có ràng buộc liên quan (đơn đặt phòng, thông tin lưu trú, v.v.)!";
+        Map<String, Object> response = new HashMap<>();
+        response.put("errors", msg);
+        response.put("message", msg);
+        ApiResponse<?> apiResponse = new ApiResponse<>(HttpStatus.CONFLICT.value(), "CONFLICT", msg, response);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(apiResponse);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<?>> handleValidation(MethodArgumentNotValidException ex) {
         String error = Optional.ofNullable(ex.getBindingResult().getFieldError())
