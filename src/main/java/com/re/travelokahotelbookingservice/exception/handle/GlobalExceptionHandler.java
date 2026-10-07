@@ -10,11 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -119,7 +121,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ApiResponse<?>> handleUsernameNotFound(UsernameNotFoundException ex) {
+    public ResponseEntity<ApiResponse<?>> handleUsernameNotFound(@NonNull UsernameNotFoundException ex) {
         log.warn("User not found attempt: {}", ex.getMessage());
         String msg = "Email hoặc mật khẩu không chính xác!";
         Map<String, Object> response = new HashMap<>();
@@ -171,5 +173,27 @@ public class GlobalExceptionHandler {
         response.put("message", msg);
         ApiResponse<?> apiResponse = new ApiResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "INTERNAL_SERVER_ERROR", msg, response);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<?>> handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
+        log.error("Missing request parameter: {}", ex.getParameterName());
+        String msg = "Thiếu tham số bắt buộc:" + ex.getParameterName();
+        Map<String, Object> response = new HashMap<>();
+        response.put("errors", msg);
+        response.put("message", msg);
+        ApiResponse<?> apiResponse = new ApiResponse<>(HttpStatus.BAD_REQUEST.value(), "BAD REQUEST", msg, response);
+        return ResponseEntity.badRequest().body(apiResponse);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<?>> handleIllegalStateException(IllegalStateException ex) {
+        log.error("Illegal state exception: {}", ex.getMessage());
+        String msg = ex.getMessage() != null ? ex.getMessage() : "Yêu cầu không hợp lệ";
+        Map<String, Object> response = new HashMap<>();
+        response.put("errors", msg);
+        response.put("message", msg);
+        ApiResponse<?> apiResponse = new ApiResponse<>(HttpStatus.BAD_REQUEST.value(), "BAD REQUEST", msg, response);
+        return ResponseEntity.badRequest().body(apiResponse);
     }
 }

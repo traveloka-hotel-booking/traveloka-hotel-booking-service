@@ -1,24 +1,25 @@
 package com.re.travelokahotelbookingservice.service.impl;
 
 import com.re.travelokahotelbookingservice.dto.UserDto;
-import com.re.travelokahotelbookingservice.dto.request.ChangePasswordRequest;
-import com.re.travelokahotelbookingservice.dto.request.LoginRequest;
-import com.re.travelokahotelbookingservice.dto.request.RefreshTokenRequest;
-import com.re.travelokahotelbookingservice.dto.request.UserRegisterRequest;
+import com.re.travelokahotelbookingservice.dto.request.*;
 import com.re.travelokahotelbookingservice.dto.response.LoginResponse;
 import com.re.travelokahotelbookingservice.dto.response.RefreshTokenResponse;
 import com.re.travelokahotelbookingservice.dto.response.UserRegisterResponse;
 import com.re.travelokahotelbookingservice.entity.RefreshToken;
+import com.re.travelokahotelbookingservice.entity.ResetPasswordToken;
 import com.re.travelokahotelbookingservice.entity.TokenBlackList;
 import com.re.travelokahotelbookingservice.entity.User;
 import com.re.travelokahotelbookingservice.exception.BusinessException;
 import com.re.travelokahotelbookingservice.exception.EmailAlreadyExistsException;
 import com.re.travelokahotelbookingservice.mapper.UserMapper;
 import com.re.travelokahotelbookingservice.repository.RefreshTokenRepository;
+import com.re.travelokahotelbookingservice.repository.ResetPasswordTokenRepository;
 import com.re.travelokahotelbookingservice.repository.TokenBlackListRepository;
 import com.re.travelokahotelbookingservice.repository.UserRepository;
 import com.re.travelokahotelbookingservice.security.TokenProvider;
 import com.re.travelokahotelbookingservice.service.AuthService;
+import com.re.travelokahotelbookingservice.service.EmailService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -43,6 +45,8 @@ public class AuthServiceImpl implements AuthService {
     private final TokenProvider tokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final TokenBlackListRepository tokenBlackListRepository;
+    private final ResetPasswordTokenRepository resetPasswordTokenRepository;
+    private final EmailService emailService;
 
     @Value("${jwt.accessTokenExpiration}")
     private Long accessTokenExpiration;
@@ -65,9 +69,9 @@ public class AuthServiceImpl implements AuthService {
         return userMapper.toUser(user);
     }
 
+    @Transactional
     @Override
     public LoginResponse handleLogin(LoginRequest request) {
-
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -184,4 +188,44 @@ public class AuthServiceImpl implements AuthService {
 
         refreshTokenRepository.deleteByUserId(user.getId());
     }
+
+    @Override
+    public void forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail()).orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        String resetToken = UUID.randomUUID().toString();
+        ResetPasswordToken resetPasswordToken = ResetPasswordToken.builder()
+                .resetToken(resetToken)
+                .user(user)
+                .expiryDate(LocalDateTime.now().plusSeconds(900))
+                .used(false)
+                .build();
+        resetPasswordTokenRepository.save(resetPasswordToken);
+        emailService.sendEmail(request.getEmail(), resetToken);
+    }
+
+    @Transactional
+    @Override
+    public void resetPassword(ResetPasswordRequest request) {
+       ResetPasswordToken resetPasswordToken = resetPasswordTokenRepository.findByResetToken(request.getToken())
+               .orElseThrow(() -> new EntityNotFoundException("Reset token không hợp lệ"));
+
+       if(resetPasswordToken.isUsed()) {
+           throw new IllegalStateException("Liên kết đặt lại mật khẩu đã được sử dụng");
+       }
+
+       if(resetPasswordToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+           throw new IllegalStateException("Reset token đã hết hạn");
+       }
+       User user = resetPasswordToken.getUser();
+       String newPassword = passwordEncoder.encode(request.getNewPassword());
+       user.setPassword(newPassword);
+       userRepository.save(user);
+       resetPasswordToken.setUsed(true);
+       resetPasswordTokenRepository.save(resetPasswordToken);
+
+       refreshTokenRepository.deleteByUserId(user.getId());
+    }
+
+
 }
