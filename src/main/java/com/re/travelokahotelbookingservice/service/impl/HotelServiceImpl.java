@@ -81,13 +81,22 @@ public class HotelServiceImpl implements HotelService {
     })
     @Transactional
     public HotelResponseDto createHotel(HotelRequestDto request) {
+        String rawImages = request.getImages();
+        String thumb = request.getThumbnailUrl();
+        if ((thumb == null || thumb.isBlank()) && rawImages != null && !rawImages.isBlank()) {
+            thumb = rawImages.split(",")[0].trim();
+        } else if ((rawImages == null || rawImages.isBlank()) && thumb != null && !thumb.isBlank()) {
+            rawImages = thumb;
+        }
+
         Hotel hotel = Hotel.builder()
                 .name(request.getName().trim())
                 .description(request.getDescription())
                 .address(request.getAddress().trim())
                 .city(request.getCity().trim())
                 .starRating(request.getStarRating() != null ? request.getStarRating() : 5)
-                .thumbnailUrl(request.getThumbnailUrl())
+                .thumbnailUrl(thumb)
+                .images(rawImages)
                 .amenities(request.getAmenities())
                 .build();
 
@@ -129,6 +138,12 @@ public class HotelServiceImpl implements HotelService {
         }
         if (request.getThumbnailUrl() != null) {
             hotel.setThumbnailUrl(request.getThumbnailUrl());
+        }
+        if (request.getImages() != null) {
+            hotel.setImages(request.getImages());
+            if ((hotel.getThumbnailUrl() == null || hotel.getThumbnailUrl().isBlank()) && !request.getImages().isBlank()) {
+                hotel.setThumbnailUrl(request.getImages().split(",")[0].trim());
+            }
         }
         if (request.getAmenities() != null) {
             hotel.setAmenities(request.getAmenities());
@@ -197,6 +212,7 @@ public class HotelServiceImpl implements HotelService {
                 .city(hotel.getCity())
                 .starRating(hotel.getStarRating())
                 .thumbnailUrl(hotel.getThumbnailUrl())
+                .images(hotel.getImageList())
                 .amenities(hotel.getAmenities())
                 .minPrice(minPrice)
                 .totalRooms(rooms.size())
@@ -237,6 +253,7 @@ public class HotelServiceImpl implements HotelService {
                 .city(hotel.getCity())
                 .starRating(hotel.getStarRating())
                 .thumbnailUrl(hotel.getThumbnailUrl())
+                .images(hotel.getImageList())
                 .amenities(hotel.getAmenities())
                 .minPrice(minPrice)
                 .totalRooms(rooms.size())
@@ -353,6 +370,7 @@ public class HotelServiceImpl implements HotelService {
                             .address(hotel.getAddress())
                             .starRating(hotel.getStarRating())
                             .thumbnailUrl(hotel.getThumbnailUrl())
+                            .images(hotel.getImageList())
                             .minPricePerNight(minPrice)
                             .build();
                 })
@@ -441,6 +459,7 @@ public class HotelServiceImpl implements HotelService {
                         .address(hotel.getAddress())
                         .starRating(hotel.getStarRating())
                         .thumbnailUrl(hotel.getThumbnailUrl())
+                        .images(hotel.getImageList())
                         .minPricePerNight(minPriceMap.get(hotel.getId()))
                         .build())
                 .toList();
