@@ -13,7 +13,11 @@ import com.re.travelokahotelbookingservice.repository.RoomRepository;
 import com.re.travelokahotelbookingservice.repository.UserRepository;
 import com.re.travelokahotelbookingservice.service.BookingService;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +30,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+@Slf4j
 @Service
 public class BookingServiceImpl implements BookingService {
 
@@ -45,7 +50,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @CacheEvict(value = "search_hotels", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "user_bookings", allEntries = true)
+    })
     @Transactional
     public BookingResponseDto createBooking(BookingRequestDto request, String currentUsername) {
 
@@ -134,6 +142,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "user_bookings", allEntries = true)
+    })
     @Transactional
     public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto confirmBooking(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -174,6 +186,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "user_bookings", allEntries = true)
+    })
     @Transactional
     public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto cancelBookingAdmin(Long bookingId, String reason) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -190,6 +206,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "user_bookings", allEntries = true)
+    })
     @Transactional
     public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto updateBookingStatusAdmin(Long bookingId, String statusStr) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -230,6 +250,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "user_bookings", allEntries = true)
+    })
     @Transactional
     public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto payCashAdmin(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -252,6 +275,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "user_bookings", allEntries = true)
+    })
     @Transactional
     public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto checkinAdmin(Long bookingId, LocalDate actualCheckInDate) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -305,6 +331,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "user_bookings", allEntries = true)
+    })
     @Transactional
     public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto checkoutAdmin(Long bookingId, LocalDate actualCheckOutDate) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -358,6 +388,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Cacheable(value = "user_bookings", key = "#currentUsername")
     @Transactional
     public List<com.re.travelokahotelbookingservice.dto.response.AdminBookingDto> getMyBookings(String currentUsername) {
         User user = userRepository.findByEmail(currentUsername)
@@ -372,7 +403,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @CacheEvict(value = "search_hotels", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "user_bookings", allEntries = true)
+    })
     @Transactional
     public com.re.travelokahotelbookingservice.dto.response.AdminBookingDto cancelBookingCustomer(Long bookingId, String currentUsername) {
         User user = userRepository.findByEmail(currentUsername)
@@ -386,9 +420,8 @@ public class BookingServiceImpl implements BookingService {
             throw new com.re.travelokahotelbookingservice.exception.BusinessException("Bạn không có quyền thao tác trên đơn đặt phòng này");
         }
 
-        if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.COMPLETED.equals(booking.getStatus()) ||
-                com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CHECKED_IN.equals(booking.getStatus())) {
-            throw new com.re.travelokahotelbookingservice.exception.BusinessException("Không thể hủy đơn đặt phòng đã nhận phòng hoặc đã hoàn thành");
+        if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.COMPLETED.equals(booking.getStatus())) {
+            throw new com.re.travelokahotelbookingservice.exception.BusinessException("Không thể hủy đơn đặt phòng đã hoàn thành");
         }
 
         booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CANCELLED);
@@ -398,6 +431,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "user_bookings", allEntries = true)
+    })
     @Transactional
     public void deleteBookingAdmin(Long id) {
         Booking booking = bookingRepository.findById(id)
@@ -418,6 +455,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "user_bookings", allEntries = true)
+    })
     @Transactional
     public int cleanupExpiredBookingsAdmin() {
         LocalDate today = LocalDate.now();
@@ -503,6 +544,21 @@ public class BookingServiceImpl implements BookingService {
                 }
                 paymentRepository.save(payment);
             }
+        }
+    }
+
+    /**
+     * Tác vụ chạy ngầm định kỳ mỗi 60 giây để đồng bộ và cập nhật đơn hết hạn / quá thời gian thanh toán.
+     * Chạy độc lập trong nền giúp giải phóng luồng HTTP GET của người dùng, nâng cao hiệu năng hệ thống.
+     */
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void scheduleSyncExpiredBookings() {
+        try {
+            List<Booking> bookings = bookingRepository.findAllWithDetails();
+            syncExpiredBookings(bookings);
+        } catch (Exception e) {
+            log.warn("Lỗi khi chạy scheduled job scheduleSyncExpiredBookings: {}", e.getMessage());
         }
     }
 
