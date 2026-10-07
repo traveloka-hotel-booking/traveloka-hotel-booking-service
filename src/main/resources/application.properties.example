@@ -52,3 +52,6 @@ spring.mail.properties.mail.smtp.writetimeout=5000
 
 # App Frontend URL
 app.frontend.url=http://localhost:5173
+
+# Google Maps Geocoding API (FR-05)
+google.maps.api-key=your_google_maps_api_key_here
