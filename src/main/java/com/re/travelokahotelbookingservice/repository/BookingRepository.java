@@ -65,4 +65,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     List<Booking> findByStatusOrderByCreatedAtDesc(com.re.travelokahotelbookingservice.entity.enums.BookingStatus status);
+
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.room.id = :roomId
+          AND b.status IN (
+              com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING,
+              com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CONFIRMED,
+              com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CHECKED_IN
+          )
+    """)
+    List<Booking> findActiveBookingsByRoomId(@Param("roomId") Long roomId);
+
+    List<Booking> findByRoomId(Long roomId);
 }
