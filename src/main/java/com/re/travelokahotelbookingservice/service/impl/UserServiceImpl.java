@@ -7,6 +7,7 @@ import com.re.travelokahotelbookingservice.mapper.UserMapper;
 import com.re.travelokahotelbookingservice.repository.UserRepository;
 import com.re.travelokahotelbookingservice.security.TokenProvider;
 import com.re.travelokahotelbookingservice.service.CloudinaryService;
+import com.re.travelokahotelbookingservice.service.GoogleGeocodingService;
 import com.re.travelokahotelbookingservice.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class UserServiceImpl implements UserService {
     private final TokenProvider tokenProvider;
     private final UserMapper userMapper;
     private final CloudinaryService cloudinaryService;
+    private final GoogleGeocodingService googleGeocodingService;
 
     public UserDto getUser(Authentication authentication) {
         String email = authentication.getName();
@@ -56,8 +58,9 @@ public class UserServiceImpl implements UserService {
             user.setGender(updateRequest.getGender());
         }
 
-        if (updateRequest.getAddress() != null) {
-            user.setAddress(updateRequest.getAddress());
+        if (updateRequest.getAddress() != null && !updateRequest.getAddress().isBlank()) {
+            String formattedAddress = googleGeocodingService.validateAddress(updateRequest.getAddress());
+            user.setAddress(formattedAddress);
         }
 
         return userMapper.fromUser(user);
