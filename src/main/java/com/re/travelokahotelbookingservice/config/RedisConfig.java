@@ -65,6 +65,7 @@ public class RedisConfig implements CachingConfigurer {
         initialCacheConfig.put("search_hotels", cacheConfig.entryTtl(Duration.ofMinutes(5)));
         initialCacheConfig.put("filter_hotels", cacheConfig.entryTtl(Duration.ofMinutes(5)));
         initialCacheConfig.put("user_bookings", cacheConfig.entryTtl(Duration.ofMinutes(3)));
+        initialCacheConfig.put("user_profile", cacheConfig.entryTtl(Duration.ofMinutes(15)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(cacheConfig)
