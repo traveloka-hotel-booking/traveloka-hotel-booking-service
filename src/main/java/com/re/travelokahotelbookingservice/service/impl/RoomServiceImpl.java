@@ -2,15 +2,23 @@ package com.re.travelokahotelbookingservice.service.impl;
 
 import com.re.travelokahotelbookingservice.dto.request.RoomRequestDto;
 import com.re.travelokahotelbookingservice.dto.response.RoomResponseDto;
+import com.re.travelokahotelbookingservice.entity.Booking;
 import com.re.travelokahotelbookingservice.entity.Hotel;
 import com.re.travelokahotelbookingservice.entity.Room;
+import com.re.travelokahotelbookingservice.entity.enums.BookingStatus;
+import com.re.travelokahotelbookingservice.exception.BusinessException;
+import com.re.travelokahotelbookingservice.repository.BookingRepository;
 import com.re.travelokahotelbookingservice.repository.HotelRepository;
+import com.re.travelokahotelbookingservice.repository.PaymentRepository;
 import com.re.travelokahotelbookingservice.repository.RoomRepository;
 import com.re.travelokahotelbookingservice.service.CloudinaryService;
 import com.re.travelokahotelbookingservice.service.RoomService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,6 +35,8 @@ public class RoomServiceImpl implements RoomService {
     private final RoomRepository roomRepository;
     private final HotelRepository hotelRepository;
     private final CloudinaryService cloudinaryService;
+    private final BookingRepository bookingRepository;
+    private final PaymentRepository paymentRepository;
 
 
     @Override
@@ -35,20 +45,21 @@ public class RoomServiceImpl implements RoomService {
         List<Room> rooms;
         if (hotelId != null) {
             if (status != null && !status.isBlank()) {
-                rooms = roomRepository.findByHotelIdAndStatus(hotelId, status.toUpperCase());
+                rooms = roomRepository.findByHotelIdAndStatusWithHotel(hotelId, status.toUpperCase());
             } else {
-                rooms = roomRepository.findByHotelId(hotelId);
+                rooms = roomRepository.findByHotelIdWithHotel(hotelId);
             }
         } else if (status != null && !status.isBlank()) {
-            rooms = roomRepository.findByStatus(status.toUpperCase());
+            rooms = roomRepository.findByStatusWithHotel(status.toUpperCase());
         } else {
-            rooms = roomRepository.findAll();
+            rooms = roomRepository.findAllWithHotel();
         }
 
         return rooms.stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     @Override
+    @Cacheable(value = "hotel_rooms", key = "#hotelId")
     @Transactional(readOnly = true)
     public List<RoomResponseDto> getRoomsByHotelId(Long hotelId) {
         return roomRepository.findByHotelId(hotelId).stream()
@@ -57,6 +68,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Cacheable(value = "room_detail", key = "#id")
     @Transactional(readOnly = true)
     public RoomResponseDto getRoomById(Long id) {
         Room room = roomRepository.findById(id)
@@ -65,6 +77,13 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "hotel_rooms", key = "#result.hotelId"),
+            @CacheEvict(value = "hotel_detail", key = "#result.hotelId"),
+            @CacheEvict(value = "hotels_list", allEntries = true),
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "filter_hotels", allEntries = true)
+    })
     @Transactional
     public RoomResponseDto createRoom(RoomRequestDto request) {
         Hotel hotel = hotelRepository.findById(request.getHotelId())
@@ -88,6 +107,14 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "room_detail", key = "#id"),
+            @CacheEvict(value = "hotel_rooms", key = "#result.hotelId"),
+            @CacheEvict(value = "hotel_detail", key = "#result.hotelId"),
+            @CacheEvict(value = "hotels_list", allEntries = true),
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "filter_hotels", allEntries = true)
+    })
     @Transactional
     public RoomResponseDto updateRoom(Long id, RoomRequestDto request) {
         Room room = roomRepository.findById(id)
@@ -122,10 +149,50 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "room_detail", key = "#id"),
+            @CacheEvict(value = "hotel_rooms", allEntries = true),
+            @CacheEvict(value = "hotel_detail", allEntries = true),
+            @CacheEvict(value = "hotels_list", allEntries = true),
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "filter_hotels", allEntries = true)
+    })
     @Transactional
     public void deleteRoom(Long id) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy loại phòng với ID: " + id));
+
+        // 1. Kiểm tra trạng thái phòng: Nếu đang có khách ở hoặc đang được đặt -> Chặn không cho xóa
+        if (room.getStatus() != null) {
+            if ("OCCUPIED".equalsIgnoreCase(room.getStatus())) {
+                throw new BusinessException("Không thể xóa loại phòng '" + room.getName() + "' vì đang có khách lưu trú.");
+            }
+            if ("BOOKED".equalsIgnoreCase(room.getStatus())) {
+                throw new BusinessException("Không thể xóa loại phòng '" + room.getName() + "' vì đang có khách đặt phòng.");
+            }
+        }
+
+        // 2. Kiểm tra các đơn đặt phòng đang hoạt động (PENDING, CONFIRMED, CHECKED_IN)
+        List<Booking> activeBookings = bookingRepository.findActiveBookingsByRoomId(id);
+        if (!activeBookings.isEmpty()) {
+            boolean hasCheckedIn = activeBookings.stream()
+                    .anyMatch(b -> BookingStatus.CHECKED_IN.equals(b.getStatus()));
+            if (hasCheckedIn) {
+                throw new BusinessException("Không thể xóa phòng '" + room.getName() + "' vì đang có khách lưu trú (Check-in).");
+            } else {
+                throw new BusinessException("Không thể xóa phòng '" + room.getName() + "' vì có đơn đặt phòng đang hoạt động.");
+            }
+        }
+
+        // 3. Dọn dẹp các đơn đặt phòng lịch sử (COMPLETED, CANCELLED, EXPIRED) và thanh toán liên quan để tránh vi phạm ràng buộc khóa ngoại
+        List<Booking> historicalBookings = bookingRepository.findByRoomId(id);
+        for (Booking b : historicalBookings) {
+            if (b.getPayment() != null) {
+                paymentRepository.delete(b.getPayment());
+            }
+            bookingRepository.delete(b);
+        }
+
         roomRepository.delete(room);
         log.info("Deleted Room id={}", id);
     }
@@ -148,6 +215,11 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "room_detail", key = "#id"),
+            @CacheEvict(value = "hotel_rooms", key = "#result.hotelId"),
+            @CacheEvict(value = "hotel_detail", key = "#result.hotelId")
+    })
     @Transactional
     public RoomResponseDto updateRoomImage(Long id, MultipartFile file) {
         Room room = roomRepository.findById(id)

@@ -10,6 +10,9 @@ import com.re.travelokahotelbookingservice.service.CloudinaryService;
 import com.re.travelokahotelbookingservice.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +28,9 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final CloudinaryService cloudinaryService;
 
+    @Override
+    @Cacheable(value = "user_profile", key = "#authentication.name")
+    @Transactional(readOnly = true)
     public UserDto getUser(Authentication authentication) {
         String email = authentication.getName();
 
@@ -32,6 +38,7 @@ public class UserServiceImpl implements UserService {
         return userMapper.fromUser(user);
     }
 
+    @CachePut(value = "user_profile", key = "#authentication.name")
     @Transactional
     @Override
     public UserDto updateUser(Authentication authentication, UserUpdateRequest updateRequest) {
@@ -60,17 +67,28 @@ public class UserServiceImpl implements UserService {
             user.setAddress(updateRequest.getAddress());
         }
 
-        return userMapper.fromUser(user);
+        User saved = userRepository.save(user);
+        return userMapper.fromUser(saved);
     }
 
+    @CacheEvict(value = "user_profile", key = "#authentication.name")
     @Transactional
     @Override
     public String updateAvatar(MultipartFile file, Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        String oldAvatarUrl = user.getAvatarUrl();
+
         Map uploadImage = cloudinaryService.uploadImage(file, user.getId());
         String avatarUrl = uploadImage.get("secure_url").toString();
         user.setAvatarUrl(avatarUrl);
+        userRepository.save(user);
+
+        // Dọn dẹp ảnh cũ trên Cloudinary chạy nền ngầm không làm chậm luồng người dùng
+        if (oldAvatarUrl != null && !oldAvatarUrl.isBlank() && !oldAvatarUrl.equals(avatarUrl)) {
+            cloudinaryService.deleteImageAsync(oldAvatarUrl);
+        }
+
         return avatarUrl;
     }
 }

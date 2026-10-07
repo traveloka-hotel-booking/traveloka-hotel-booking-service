@@ -1,30 +1,32 @@
 package com.re.travelokahotelbookingservice.service.impl;
 
 import com.re.travelokahotelbookingservice.service.EmailService;
-import jdk.dynalink.linker.support.SimpleLinkRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.username:noreply@traveloka.com}")
     private String fromEmail;
 
-    @Value("${app.frontend.url}")
+    @Value("${app.frontend.url:http://localhost:5173}")
     private String frontEndUrl;
 
     @Override
     public void sendEmail(String toEmail, String token) {
-        SimpleMailMessage message = new SimpleMailMessage();
         String resetLink = frontEndUrl + "/reset-password/" + token;
+        log.info("Khởi tạo yêu cầu đặt lại mật khẩu cho email [{}]. Reset Link: {}", toEmail, resetLink);
 
+        SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(toEmail);
         message.setSubject("Đặt lại mật khẩu - Traveloka Hotel");
@@ -43,6 +45,11 @@ public class EmailServiceImpl implements EmailService {
                 + "Traveloka Hotel"
         );
 
-        mailSender.send(message);
+        try {
+            mailSender.send(message);
+            log.info("Đã gửi email đặt lại mật khẩu thành công tới: {}", toEmail);
+        } catch (Exception e) {
+            log.warn("Không thể gửi email qua SMTP: {}. Người dùng/Tester có thể sử dụng link reset trực tiếp: {}", e.getMessage(), resetLink);
+        }
     }
 }

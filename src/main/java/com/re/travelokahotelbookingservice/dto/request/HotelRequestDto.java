@@ -28,5 +28,6 @@ public class HotelRequestDto {
     private java.math.BigDecimal pricePerNight;
 
     private String thumbnailUrl;
+    private String images;
     private String amenities;
 }

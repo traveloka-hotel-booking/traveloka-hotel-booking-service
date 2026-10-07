@@ -7,12 +7,14 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class HotelSearchResponseDto {
+public class HotelSearchResponseDto implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     private Long id;
     private String name;
     private String city;
     private String address;
     private Integer starRating;
     private String thumbnailUrl;
+    private java.util.List<String> images;
     private BigDecimal minPricePerNight;
 }

@@ -29,6 +29,7 @@ public class ResetPasswordToken {
     @Column(name = "expiry_date", updatable = false)
     private LocalDateTime expiryDate;
 
+    @Builder.Default
     @Column(name = "used", nullable = false)
     private boolean used = false;
 
