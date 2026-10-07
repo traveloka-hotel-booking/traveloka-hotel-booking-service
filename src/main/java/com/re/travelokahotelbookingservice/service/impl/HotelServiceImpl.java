@@ -76,7 +76,8 @@ public class HotelServiceImpl implements HotelService {
     @Caching(evict = {
             @CacheEvict(value = "hotels_list", allEntries = true),
             @CacheEvict(value = "hotel_detail", allEntries = true),
-            @CacheEvict(value = "search_hotels", allEntries = true)
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "filter_hotels", allEntries = true)
     })
     @Transactional
     public HotelResponseDto createHotel(HotelRequestDto request) {
@@ -111,7 +112,8 @@ public class HotelServiceImpl implements HotelService {
     @Caching(evict = {
             @CacheEvict(value = "hotel_detail", key = "#id"),
             @CacheEvict(value = "hotels_list", allEntries = true),
-            @CacheEvict(value = "search_hotels", allEntries = true)
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "filter_hotels", allEntries = true)
     })
     @Transactional
     public HotelResponseDto updateHotel(Long id, HotelRequestDto request) {
@@ -163,7 +165,8 @@ public class HotelServiceImpl implements HotelService {
             @CacheEvict(value = "hotel_detail", key = "#id"),
             @CacheEvict(value = "hotels_list", allEntries = true),
             @CacheEvict(value = "hotel_rooms", key = "#id"),
-            @CacheEvict(value = "search_hotels", allEntries = true)
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "filter_hotels", allEntries = true)
     })
     @Transactional
     public void deleteHotel(Long id) {
@@ -246,7 +249,8 @@ public class HotelServiceImpl implements HotelService {
     @Caching(evict = {
             @CacheEvict(value = "hotel_detail", key = "#id"),
             @CacheEvict(value = "hotels_list", allEntries = true),
-            @CacheEvict(value = "search_hotels", allEntries = true)
+            @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "filter_hotels", allEntries = true)
     })
     @Transactional
     public HotelResponseDto updateThumbnail(Long id, MultipartFile file) {
@@ -359,6 +363,10 @@ public class HotelServiceImpl implements HotelService {
 
     //FR-07
     @Override
+    @Cacheable(
+            value = "filter_hotels",
+            key = "(#filter != null && #filter.city != null ? #filter.city.toLowerCase().trim() : 'ALL') + '_' + (#filter != null && #filter.minStar != null ? #filter.minStar : 0) + '_' + (#filter != null && #filter.maxStar != null ? #filter.maxStar : 5) + '_' + (#filter != null && #filter.amenities != null ? #filter.amenities.toString() : 'NONE') + '_' + (#pageable != null ? #pageable.pageNumber : 0) + '_' + (#pageable != null ? #pageable.pageSize : 10) + '_' + (#pageable != null && #pageable.sort != null ? #pageable.sort.toString() : 'DEFAULT')"
+    )
     public Page<HotelListItemDto> filterHotels(HotelFilterRequest filter, Pageable pageable) {
 
         Specification<Hotel> spec = (root, query, cb) -> {
@@ -410,7 +418,7 @@ public class HotelServiceImpl implements HotelService {
         List<Hotel> hotels = hotelPage.getContent();
 
         if (hotels.isEmpty()) {
-            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+            return new RestPage<>(Collections.emptyList(), pageable, 0);
         }
 
         // Triệt tiêu N+1 Query: Lấy giá phòng thấp nhất của tất cả khách sạn trong 1 câu SQL duy nhất
@@ -435,7 +443,7 @@ public class HotelServiceImpl implements HotelService {
                         .build())
                 .toList();
 
-        return new PageImpl<>(content, pageable, hotelPage.getTotalElements());
+        return new RestPage<>(content, pageable, hotelPage.getTotalElements());
     }
 
 }

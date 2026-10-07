@@ -63,6 +63,7 @@ public class RedisConfig implements CachingConfigurer {
 
         java.util.Map<String, RedisCacheConfiguration> initialCacheConfig = new java.util.HashMap<>();
         initialCacheConfig.put("search_hotels", cacheConfig.entryTtl(Duration.ofMinutes(5)));
+        initialCacheConfig.put("filter_hotels", cacheConfig.entryTtl(Duration.ofMinutes(5)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(cacheConfig)
