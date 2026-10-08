@@ -59,7 +59,7 @@ public class UserServiceImpl implements UserService {
         if (updateRequest.getFullName() != null) {
             user.setFullName(updateRequest.getFullName());
         }
-        if (updateRequest.getPhone() != null) {
+        if (updateRequest.getPhone() != null && !updateRequest.getPhone().isBlank()) {
             user.setPhone(updateRequest.getPhone());
         }
 
