@@ -142,6 +142,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiResponse);
     }
 
+    @ExceptionHandler(org.springframework.security.authentication.DisabledException.class)
+    public ResponseEntity<ApiResponse<?>> handleDisabledException(org.springframework.security.authentication.DisabledException ex) {
+        log.warn("Disabled user login attempt: {}", ex.getMessage());
+        String msg = "Tài khoản của bạn đã bị khóa bởi Quản trị viên. Vui lòng liên hệ bộ phận hỗ trợ!";
+        Map<String, Object> response = new HashMap<>();
+        response.put("errors", msg);
+        response.put("message", msg);
+        ApiResponse<?> apiResponse = new ApiResponse<>(HttpStatus.UNAUTHORIZED.value(), "UNAUTHORIZED", msg, response);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(apiResponse);
+    }
+
+    @ExceptionHandler(org.springframework.security.authentication.LockedException.class)
+    public ResponseEntity<ApiResponse<?>> handleLockedException(org.springframework.security.authentication.LockedException ex) {
+        log.warn("Locked user login attempt: {}", ex.getMessage());
+        String msg = "Tài khoản của bạn hiện đang bị tạm khóa. Vui lòng liên hệ bộ phận hỗ trợ!";
+        Map<String, Object> response = new HashMap<>();
+        response.put("errors", msg);
+        response.put("message", msg);
+        ApiResponse<?> apiResponse = new ApiResponse<>(HttpStatus.UNAUTHORIZED.value(), "UNAUTHORIZED", msg, response);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(apiResponse);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<?>> handleAuthentication(AuthenticationException ex) {
         log.warn("Authentication failed: {}", ex.getMessage());

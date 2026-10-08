@@ -3,6 +3,7 @@ package com.re.travelokahotelbookingservice.service.impl;
 import com.re.travelokahotelbookingservice.dto.UserDto;
 import com.re.travelokahotelbookingservice.dto.request.UserUpdateRequest;
 import com.re.travelokahotelbookingservice.entity.User;
+import com.re.travelokahotelbookingservice.entity.enums.Role;
 import com.re.travelokahotelbookingservice.mapper.UserMapper;
 import com.re.travelokahotelbookingservice.repository.UserRepository;
 import com.re.travelokahotelbookingservice.security.TokenProvider;
@@ -14,6 +15,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +34,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final CloudinaryService cloudinaryService;
     private final GoogleGeocodingService googleGeocodingService;
+    private final com.re.travelokahotelbookingservice.repository.RefreshTokenRepository refreshTokenRepository;
 
     @Override
     @Cacheable(value = "user_profile", key = "#authentication.name")
@@ -93,5 +99,39 @@ public class UserServiceImpl implements UserService {
         }
 
         return avatarUrl;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<UserDto> getAllUsers(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<User> users = userRepository.findAll(pageable);
+        return users.map(userMapper::fromUser);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "user_profile", allEntries = true)
+    public void lockUser(Long id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
+
+        if (user.getRole().equals(Role.ROLE_ADMIN)) {
+            throw new IllegalArgumentException("Không thể khóa tài khoản Quản trị viên");
+        }
+
+        user.setIsEnabled(false);
+        userRepository.save(user);
+
+        // Thu hồi toàn bộ Refresh Token của user bị khóa để buộc logout ngay lập tức
+        refreshTokenRepository.deleteByUserId(user.getId());
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "user_profile", allEntries = true)
+    public void unlockUser(Long id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
+        user.setIsEnabled(true);
+        userRepository.save(user);
     }
 }
