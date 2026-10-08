@@ -1,7 +1,7 @@
 package com.re.travelokahotelbookingservice.aop;
 
 import com.re.travelokahotelbookingservice.entity.AuditLog;
-import com.re.travelokahotelbookingservice.repository.AuditLogRepository;
+import com.re.travelokahotelbookingservice.service.AuditLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class LoggingAspect {
 
-    private final AuditLogRepository auditLogRepository;
+    private final AuditLogService auditLogService;
 
     /**
      * Pointcut bao quát toàn bộ Controller trong hệ thống
@@ -95,7 +95,8 @@ public class LoggingAspect {
     }
 
     /**
-     * Lưu nhật ký vào bảng audit_logs trong MySQL (Bọc try-catch an toàn để không ảnh hưởng luồng chính)
+     * Bàn giao bản ghi nhật ký kiểm toán sang AuditLogService để lưu bất đồng bộ trên luồng nền.
+     * Phương thức này hoàn thành ngay lập tức (< 0.1ms), không làm chậm phản hồi HTTP trả về cho Client.
      */
     private void saveAuditLog(String httpMethod, String requestURI, String actionName, 
                               String ipAddress, String status, String errorMessage, long duration) {
@@ -116,9 +117,9 @@ public class LoggingAspect {
                     .createdAt(LocalDateTime.now())
                     .build();
 
-            auditLogRepository.save(auditLog);
+            auditLogService.saveAuditLogAsync(auditLog);
         } catch (Exception e) {
-            log.warn("Không thể lưu AuditLog vào Database: {}", e.getMessage());
+            log.warn("Không thể chuyển giao AuditLog sang tác vụ ngầm: {}", e.getMessage());
         }
     }
 
@@ -134,6 +135,10 @@ public class LoggingAspect {
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
-        return (ip != null && ip.contains(",")) ? ip.split(",")[0].trim() : ip;
+        String resolvedIp = (ip != null && ip.contains(",")) ? ip.split(",")[0].trim() : ip;
+        if ("0:0:0:0:0:0:0:1".equals(resolvedIp) || "::1".equals(resolvedIp)) {
+            return "127.0.0.1";
+        }
+        return resolvedIp;
     }
 }

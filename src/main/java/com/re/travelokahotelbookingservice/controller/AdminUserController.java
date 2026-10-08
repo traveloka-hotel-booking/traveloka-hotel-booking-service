@@ -15,7 +15,9 @@ public class AdminUserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<UserDto>>> getAllUsers(@RequestParam int page, @RequestParam int size) {
+    public ResponseEntity<ApiResponse<Page<UserDto>>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         Page<UserDto> userDtos = userService.getAllUsers(page, size);
         ApiResponse<Page<UserDto>> apiResponse = new ApiResponse<>(200, "SUCCESS", userDtos);
         return ResponseEntity.ok().body(apiResponse);
@@ -24,14 +26,14 @@ public class AdminUserController {
     @PatchMapping("/{id}/lock")
     public ResponseEntity<ApiResponse<?>> lockUser(@PathVariable Long id) {
         userService.lockUser(id);
-        ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Khóa user thành công");
+        ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Khóa tài khoản thành công");
         return ResponseEntity.ok().body(apiResponse);
     }
 
     @PatchMapping("/{id}/unlock")
     public ResponseEntity<ApiResponse<?>> unlockUser(@PathVariable Long id) {
         userService.unlockUser(id);
-        ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Mở khóa user thành công");
+        ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Mở khóa tài khoản thành công");
         return ResponseEntity.ok().body(apiResponse);
     }
 }

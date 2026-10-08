@@ -1,5 +1,6 @@
 package com.re.travelokahotelbookingservice.controller;
 
+import com.cloudinary.Api;
 import com.re.travelokahotelbookingservice.dto.request.*;
 import com.re.travelokahotelbookingservice.dto.response.ApiResponse;
 import com.re.travelokahotelbookingservice.dto.response.LoginResponse;
@@ -51,6 +52,20 @@ public class AuthController {
     public ResponseEntity<ApiResponse<?>> changePassword(Authentication authentication, HttpServletRequest requestHeader, @Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(authentication, requestHeader, request);
         ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Cập nhật mật khẩu thành công");
+        return ResponseEntity.ok().body(apiResponse);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<?>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Gửi mail reset password thành công");
+        return ResponseEntity.ok().body(apiResponse);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<?>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Cập nhật mật khẩu mới thành công");
         return ResponseEntity.ok().body(apiResponse);
     }
 }

@@ -8,15 +8,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -28,7 +25,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @EnableWebSecurity
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
-    private final UserDetailsService userDetailsService;
     private final AuthenticationFilter authenticationFilter;
     private final ForbiddenEntryPoint forbiddenEntryPoint;
     private final UnauthorizedEntryPoint unauthorizedEntryPoint;
@@ -37,15 +33,6 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-
-        return authProvider;
     }
 
     @Bean
@@ -60,7 +47,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/refresh",
                                 "/api/v1/customer/payments/vnpay-callback",
-                                "/error").permitAll()
+                                "/error",
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/api/v1/auth/logout",
                                 "/api/v1/auth/change-password").authenticated()
                         .requestMatchers("/api/v1/customer/**").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
@@ -71,7 +60,6 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(unauthorizedEntryPoint)
                         .accessDeniedHandler(forbiddenEntryPoint))
-                .authenticationProvider(authenticationProvider())
                 .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

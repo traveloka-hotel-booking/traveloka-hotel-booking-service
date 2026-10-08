@@ -32,9 +32,13 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
     implementation 'com.cloudinary:cloudinary-http5:2.0.0'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'org.apache.commons:commons-pool2'
 }
 
 tasks.named('test') {
