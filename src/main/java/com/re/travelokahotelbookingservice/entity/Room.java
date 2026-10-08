@@ -43,6 +43,9 @@ public class Room {
     @Column(name = "room_size")
     private String roomSize;
 
+    @Column(columnDefinition = "TEXT")
+    private String amenities;
+
     @Column(name = "created_at")
     private java.time.LocalDateTime createdAt;
 

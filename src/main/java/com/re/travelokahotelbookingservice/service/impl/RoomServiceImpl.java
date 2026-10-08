@@ -99,6 +99,7 @@ public class RoomServiceImpl implements RoomService {
                 .imageUrl(request.getImageUrl())
                 .bedType(request.getBedType())
                 .roomSize(request.getRoomSize())
+                .amenities(request.getAmenities())
                 .build();
 
         Room saved = roomRepository.save(room);
@@ -141,6 +142,9 @@ public class RoomServiceImpl implements RoomService {
         }
         if (request.getRoomSize() != null) {
             room.setRoomSize(request.getRoomSize());
+        }
+        if (request.getAmenities() != null) {
+            room.setAmenities(request.getAmenities());
         }
 
         Room updated = roomRepository.save(room);
@@ -210,6 +214,7 @@ public class RoomServiceImpl implements RoomService {
                 .imageUrl(room.getImageUrl())
                 .bedType(room.getBedType())
                 .roomSize(room.getRoomSize())
+                .amenities(room.getAmenities())
                 .createdAt(room.getCreatedAt())
                 .build();
     }

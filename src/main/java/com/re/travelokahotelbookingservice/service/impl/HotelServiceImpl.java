@@ -91,7 +91,8 @@ public class HotelServiceImpl implements HotelService {
         String rawImages = request.getImages();
         String thumb = request.getThumbnailUrl();
         if ((thumb == null || thumb.isBlank()) && rawImages != null && !rawImages.isBlank()) {
-            thumb = rawImages.split(",")[0].trim();
+            String delimiter = rawImages.contains(";;;") ? ";;;" : (rawImages.contains("|||") ? "\\|\\|\\|" : (rawImages.contains("\n") ? "\n" : ","));
+            thumb = rawImages.split(delimiter)[0].trim();
         } else if ((rawImages == null || rawImages.isBlank()) && thumb != null && !thumb.isBlank()) {
             rawImages = thumb;
         }
@@ -108,17 +109,6 @@ public class HotelServiceImpl implements HotelService {
                 .build();
 
         Hotel saved = hotelRepository.save(hotel);
-
-        if (request.getPricePerNight() != null && request.getPricePerNight().compareTo(BigDecimal.ZERO) > 0) {
-            Room defaultRoom = Room.builder()
-                    .hotel(saved)
-                    .name("Phòng Tiêu Chuẩn - " + saved.getName())
-                    .maxGuests(2)
-                    .pricePerNight(request.getPricePerNight())
-                    .status("AVAILABLE")
-                    .build();
-            roomRepository.save(defaultRoom);
-        }
 
         log.info("Created new Hotel: id={}, name={}", saved.getId(), saved.getName());
         return mapToResponseDtoWithRooms(saved);
@@ -149,7 +139,8 @@ public class HotelServiceImpl implements HotelService {
         if (request.getImages() != null) {
             hotel.setImages(request.getImages());
             if ((hotel.getThumbnailUrl() == null || hotel.getThumbnailUrl().isBlank()) && !request.getImages().isBlank()) {
-                hotel.setThumbnailUrl(request.getImages().split(",")[0].trim());
+                String delimiter = request.getImages().contains(";;;") ? ";;;" : (request.getImages().contains("|||") ? "\\|\\|\\|" : (request.getImages().contains("\n") ? "\n" : ","));
+                hotel.setThumbnailUrl(request.getImages().split(delimiter)[0].trim());
             }
         }
         if (request.getAmenities() != null) {
@@ -158,16 +149,7 @@ public class HotelServiceImpl implements HotelService {
 
         if (request.getPricePerNight() != null && request.getPricePerNight().compareTo(BigDecimal.ZERO) > 0) {
             List<Room> rooms = roomRepository.findByHotelId(id);
-            if (rooms.isEmpty()) {
-                Room defaultRoom = Room.builder()
-                        .hotel(hotel)
-                        .name("Phòng Tiêu Chuẩn - " + hotel.getName())
-                        .maxGuests(2)
-                        .pricePerNight(request.getPricePerNight())
-                        .status("AVAILABLE")
-                        .build();
-                roomRepository.save(defaultRoom);
-            } else {
+            if (!rooms.isEmpty()) {
                 // Cập nhật giá cho phòng có giá thấp nhất (giá khởi điểm của khách sạn)
                 Room targetRoom = rooms.stream()
                         .min(java.util.Comparator.comparing(Room::getPricePerNight))
@@ -280,6 +262,7 @@ public class HotelServiceImpl implements HotelService {
                         .imageUrl(r.getImageUrl())
                         .bedType(r.getBedType())
                         .roomSize(r.getRoomSize())
+                        .amenities(r.getAmenities())
                         .createdAt(r.getCreatedAt())
                         .build())
                 .collect(Collectors.toList());
