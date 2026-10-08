@@ -48,7 +48,29 @@ public class Hotel {
 
     public java.util.List<String> getImageList() {
         if (images != null && !images.isBlank()) {
-            return java.util.Arrays.stream(images.split(","))
+            String trimmed = images.trim();
+            if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    java.util.List<String> list = mapper.readValue(trimmed, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<String>>() {});
+                    if (list != null && !list.isEmpty()) {
+                        return list.stream().map(String::trim).filter(s -> !s.isEmpty()).toList();
+                    }
+                } catch (Exception ignored) {}
+            }
+            if (trimmed.contains(";;;")) {
+                return java.util.Arrays.stream(trimmed.split(";;;"))
+                        .map(String::trim).filter(s -> !s.isEmpty()).toList();
+            }
+            if (trimmed.contains("|||")) {
+                return java.util.Arrays.stream(trimmed.split("\\|\\|\\|"))
+                        .map(String::trim).filter(s -> !s.isEmpty()).toList();
+            }
+            if (trimmed.contains("\n")) {
+                return java.util.Arrays.stream(trimmed.split("\n"))
+                        .map(String::trim).filter(s -> !s.isEmpty()).toList();
+            }
+            return java.util.Arrays.stream(trimmed.split(","))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .toList();

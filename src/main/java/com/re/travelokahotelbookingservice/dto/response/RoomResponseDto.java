@@ -22,5 +22,6 @@ public class RoomResponseDto implements java.io.Serializable {
     private String imageUrl;
     private String bedType;
     private String roomSize;
+    private String amenities;
     private LocalDateTime createdAt;
 }

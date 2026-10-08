@@ -85,6 +85,11 @@ public class DataInitializer implements CommandLineRunner {
                 jdbcTemplate.execute("ALTER TABLE hotels MODIFY COLUMN thumbnail_url TEXT");
             } catch (Exception ignored) {}
 
+            // Đảm bảo cột amenities tồn tại trong bảng rooms
+            try {
+                jdbcTemplate.execute("ALTER TABLE rooms ADD COLUMN amenities TEXT");
+            } catch (Exception ignored) {}
+
             // Chuẩn hóa Enum Gender
             try {
                 jdbcTemplate.execute("UPDATE users SET gender = 'MALE' WHERE gender = 'Nam' OR gender = 'nam'");
