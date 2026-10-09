@@ -12,8 +12,10 @@ import com.re.travelokahotelbookingservice.entity.Hotel;
 import com.re.travelokahotelbookingservice.entity.Room;
 import com.re.travelokahotelbookingservice.entity.enums.BookingStatus;
 import com.re.travelokahotelbookingservice.exception.BusinessException;
-import com.re.travelokahotelbookingservice.util.HotelImageUtils;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Arrays;
 import com.re.travelokahotelbookingservice.repository.BookingRepository;
 import com.re.travelokahotelbookingservice.repository.HotelRepository;
 import com.re.travelokahotelbookingservice.repository.PaymentRepository;
@@ -48,6 +50,9 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class HotelServiceImpl implements HotelService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final TypeReference<List<String>> IMAGE_LIST_TYPE_REF = new TypeReference<>() {};
 
     private final HotelRepository hotelRepository;
     private final RoomRepository roomRepository;
@@ -236,7 +241,7 @@ public class HotelServiceImpl implements HotelService {
                 .city(hotel.getCity())
                 .starRating(hotel.getStarRating())
                 .thumbnailUrl(hotel.getThumbnailUrl())
-                .images(HotelImageUtils.extractImageList(hotel))
+                .images(extractImageList(hotel))
                 .amenities(hotel.getAmenities())
                 .minPrice(minPrice)
                 .totalRooms(rooms.size())
@@ -278,7 +283,7 @@ public class HotelServiceImpl implements HotelService {
                 .city(hotel.getCity())
                 .starRating(hotel.getStarRating())
                 .thumbnailUrl(hotel.getThumbnailUrl())
-                .images(HotelImageUtils.extractImageList(hotel))
+                .images(extractImageList(hotel))
                 .amenities(hotel.getAmenities())
                 .minPrice(minPrice)
                 .totalRooms(rooms.size())
@@ -408,7 +413,7 @@ public class HotelServiceImpl implements HotelService {
                             .address(hotel.getAddress())
                             .starRating(hotel.getStarRating())
                             .thumbnailUrl(hotel.getThumbnailUrl())
-                            .images(HotelImageUtils.extractImageList(hotel))
+                            .images(extractImageList(hotel))
                             .minPricePerNight(minPrice)
                             .build();
                 })
@@ -497,12 +502,64 @@ public class HotelServiceImpl implements HotelService {
                         .address(hotel.getAddress())
                         .starRating(hotel.getStarRating())
                         .thumbnailUrl(hotel.getThumbnailUrl())
-                        .images(HotelImageUtils.extractImageList(hotel))
+                        .images(extractImageList(hotel))
                         .minPricePerNight(minPriceMap.get(hotel.getId()))
                         .build())
                 .toList();
 
         return new RestPage<>(content, pageable, hotelPage.getTotalElements());
+    }
+
+    /**
+     * Helper trích xuất danh sách hình ảnh của Khách sạn (xử lý tại tầng Service theo SRP)
+     */
+    private List<String> extractImageList(Hotel hotel) {
+        if (hotel == null) {
+            return Collections.emptyList();
+        }
+        String images = hotel.getImages();
+        String thumbnailUrl = hotel.getThumbnailUrl();
+
+        if (images != null && !images.isBlank()) {
+            String trimmed = images.trim();
+            if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+                try {
+                    List<String> list = OBJECT_MAPPER.readValue(trimmed, IMAGE_LIST_TYPE_REF);
+                    if (list != null && !list.isEmpty()) {
+                        return list.stream()
+                                .map(String::trim)
+                                .filter(s -> !s.isEmpty())
+                                .toList();
+                    }
+                } catch (Exception ignored) {}
+            }
+            if (trimmed.contains(";;;")) {
+                return Arrays.stream(trimmed.split(";;;"))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .toList();
+            }
+            if (trimmed.contains("|||")) {
+                return Arrays.stream(trimmed.split("\\|\\|\\|"))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .toList();
+            }
+            if (trimmed.contains("\n")) {
+                return Arrays.stream(trimmed.split("\n"))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .toList();
+            }
+            return Arrays.stream(trimmed.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+        }
+        if (thumbnailUrl != null && !thumbnailUrl.isBlank()) {
+            return List.of(thumbnailUrl.trim());
+        }
+        return Collections.emptyList();
     }
 
     /**

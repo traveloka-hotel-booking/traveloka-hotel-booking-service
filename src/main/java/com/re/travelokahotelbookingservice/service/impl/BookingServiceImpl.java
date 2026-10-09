@@ -12,7 +12,6 @@ import com.re.travelokahotelbookingservice.repository.BookingRepository;
 import com.re.travelokahotelbookingservice.repository.RoomRepository;
 import com.re.travelokahotelbookingservice.repository.UserRepository;
 import com.re.travelokahotelbookingservice.service.BookingService;
-import com.re.travelokahotelbookingservice.util.HotelImageUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -599,9 +598,8 @@ public class BookingServiceImpl implements BookingService {
 
         if (hotel != null) {
             String thumb = hotel.getThumbnailUrl();
-            List<String> hotelImages = HotelImageUtils.extractImageList(hotel);
-            if ((thumb == null || thumb.isBlank()) && !hotelImages.isEmpty()) {
-                thumb = hotelImages.get(0);
+            if ((thumb == null || thumb.isBlank()) && hotel.getImages() != null && !hotel.getImages().isBlank()) {
+                thumb = extractFirstImage(hotel.getImages());
             }
             builder.hotelId(hotel.getId())
                     .hotelName(hotel.getName())
@@ -614,9 +612,8 @@ public class BookingServiceImpl implements BookingService {
             String roomImg = room.getImageUrl();
             if ((roomImg == null || roomImg.isBlank()) && hotel != null) {
                 roomImg = hotel.getThumbnailUrl();
-                List<String> hotelImages = HotelImageUtils.extractImageList(hotel);
-                if ((roomImg == null || roomImg.isBlank()) && !hotelImages.isEmpty()) {
-                    roomImg = hotelImages.get(0);
+                if ((roomImg == null || roomImg.isBlank()) && hotel.getImages() != null && !hotel.getImages().isBlank()) {
+                    roomImg = extractFirstImage(hotel.getImages());
                 }
             }
             builder.roomId(room.getId())
@@ -635,5 +632,26 @@ public class BookingServiceImpl implements BookingService {
         }
 
         return builder.build();
+    }
+
+    private String extractFirstImage(String images) {
+        if (images == null || images.isBlank()) return null;
+        String trimmed = images.trim();
+        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+            String unbracketed = trimmed.substring(1, trimmed.length() - 1).trim();
+            for (String part : unbracketed.split(",")) {
+                String clean = part.replace("\"", "").replace("'", "").trim();
+                if (!clean.isEmpty()) return clean;
+            }
+        }
+        for (String delimiter : new String[]{";;;", "\\|\\|\\|", "\n", ","}) {
+            if (trimmed.contains(delimiter.replace("\\", ""))) {
+                String[] parts = trimmed.split(delimiter);
+                for (String p : parts) {
+                    if (!p.trim().isEmpty()) return p.trim();
+                }
+            }
+        }
+        return trimmed;
     }
 }
