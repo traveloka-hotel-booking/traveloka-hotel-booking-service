@@ -597,18 +597,29 @@ public class BookingServiceImpl implements BookingService {
         }
 
         if (hotel != null) {
+            String thumb = hotel.getThumbnailUrl();
+            if ((thumb == null || thumb.isBlank()) && hotel.getImageList() != null && !hotel.getImageList().isEmpty()) {
+                thumb = hotel.getImageList().get(0);
+            }
             builder.hotelId(hotel.getId())
                     .hotelName(hotel.getName())
                     .hotelCity(hotel.getCity())
                     .hotelAddress(hotel.getAddress())
-                    .hotelThumbnailUrl(hotel.getThumbnailUrl());
+                    .hotelThumbnailUrl(thumb);
         }
 
         if (room != null) {
+            String roomImg = room.getImageUrl();
+            if ((roomImg == null || roomImg.isBlank()) && hotel != null) {
+                roomImg = hotel.getThumbnailUrl();
+                if ((roomImg == null || roomImg.isBlank()) && hotel.getImageList() != null && !hotel.getImageList().isEmpty()) {
+                    roomImg = hotel.getImageList().get(0);
+                }
+            }
             builder.roomId(room.getId())
                     .roomName(room.getName())
                     .roomType(room.getBedType() != null ? room.getBedType() : "Tiêu chuẩn")
-                    .roomImageUrl(room.getImageUrl())
+                    .roomImageUrl(roomImg)
                     .pricePerNight(room.getPricePerNight());
         }
 
