@@ -53,13 +53,13 @@ public class HotelController {
         return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", result));
     }
 
-    // FR-06: Tìm kiếm khách sạn
+    // FR-06: Tìm kiếm khách sạn (hỗ trợ tìm toàn quốc khi city để trống)
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<Page<HotelSearchResponseDto>>> searchHotels(
-            @RequestParam String city,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
-            @RequestParam Integer guests,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
+            @RequestParam(required = false, defaultValue = "1") Integer guests,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {

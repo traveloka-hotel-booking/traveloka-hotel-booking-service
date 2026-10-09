@@ -329,6 +329,15 @@ public class HotelServiceImpl implements HotelService {
         if (pageable == null) {
             pageable = PageRequest.of(0, 20, Sort.by("name").ascending());
         }
+        if (checkIn == null) {
+            checkIn = LocalDate.now();
+        }
+        if (checkOut == null) {
+            checkOut = checkIn.plusDays(1);
+        }
+        if (guests == null || guests < 1) {
+            guests = 1;
+        }
 
         // 1. Build Specification lọc theo city
         Specification<Hotel> spec = (root, query, cb) -> {
@@ -336,12 +345,16 @@ public class HotelServiceImpl implements HotelService {
 
             if (city != null && !city.isBlank()) {
                 String searchCity = normalizeCityKeyword(city);
-                predicates.add(
-                        cb.like(
-                                cb.lower(root.get("city")),
-                                "%" + searchCity.toLowerCase() + "%"
-                        )
-                );
+                if (!searchCity.equalsIgnoreCase("Việt Nam")
+                        && !searchCity.equalsIgnoreCase("Toàn bộ")
+                        && !searchCity.equalsIgnoreCase("Tất cả")) {
+                    predicates.add(
+                            cb.like(
+                                    cb.lower(root.get("city")),
+                                    "%" + searchCity.toLowerCase() + "%"
+                            )
+                    );
+                }
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
