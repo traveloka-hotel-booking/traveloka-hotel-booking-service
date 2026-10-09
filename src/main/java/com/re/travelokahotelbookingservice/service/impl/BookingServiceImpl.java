@@ -12,6 +12,7 @@ import com.re.travelokahotelbookingservice.repository.BookingRepository;
 import com.re.travelokahotelbookingservice.repository.RoomRepository;
 import com.re.travelokahotelbookingservice.repository.UserRepository;
 import com.re.travelokahotelbookingservice.service.BookingService;
+import com.re.travelokahotelbookingservice.util.HotelImageUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -598,8 +599,9 @@ public class BookingServiceImpl implements BookingService {
 
         if (hotel != null) {
             String thumb = hotel.getThumbnailUrl();
-            if ((thumb == null || thumb.isBlank()) && hotel.getImageList() != null && !hotel.getImageList().isEmpty()) {
-                thumb = hotel.getImageList().get(0);
+            List<String> hotelImages = HotelImageUtils.extractImageList(hotel);
+            if ((thumb == null || thumb.isBlank()) && !hotelImages.isEmpty()) {
+                thumb = hotelImages.get(0);
             }
             builder.hotelId(hotel.getId())
                     .hotelName(hotel.getName())
@@ -612,8 +614,9 @@ public class BookingServiceImpl implements BookingService {
             String roomImg = room.getImageUrl();
             if ((roomImg == null || roomImg.isBlank()) && hotel != null) {
                 roomImg = hotel.getThumbnailUrl();
-                if ((roomImg == null || roomImg.isBlank()) && hotel.getImageList() != null && !hotel.getImageList().isEmpty()) {
-                    roomImg = hotel.getImageList().get(0);
+                List<String> hotelImages = HotelImageUtils.extractImageList(hotel);
+                if ((roomImg == null || roomImg.isBlank()) && !hotelImages.isEmpty()) {
+                    roomImg = hotelImages.get(0);
                 }
             }
             builder.roomId(room.getId())

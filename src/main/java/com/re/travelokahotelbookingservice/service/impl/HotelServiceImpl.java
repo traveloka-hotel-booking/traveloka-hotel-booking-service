@@ -12,6 +12,8 @@ import com.re.travelokahotelbookingservice.entity.Hotel;
 import com.re.travelokahotelbookingservice.entity.Room;
 import com.re.travelokahotelbookingservice.entity.enums.BookingStatus;
 import com.re.travelokahotelbookingservice.exception.BusinessException;
+import com.re.travelokahotelbookingservice.util.HotelImageUtils;
+import java.time.LocalDateTime;
 import com.re.travelokahotelbookingservice.repository.BookingRepository;
 import com.re.travelokahotelbookingservice.repository.HotelRepository;
 import com.re.travelokahotelbookingservice.repository.PaymentRepository;
@@ -106,6 +108,7 @@ public class HotelServiceImpl implements HotelService {
                 .thumbnailUrl(thumb)
                 .images(rawImages)
                 .amenities(request.getAmenities())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         Hotel saved = hotelRepository.save(hotel);
@@ -233,7 +236,7 @@ public class HotelServiceImpl implements HotelService {
                 .city(hotel.getCity())
                 .starRating(hotel.getStarRating())
                 .thumbnailUrl(hotel.getThumbnailUrl())
-                .images(hotel.getImageList())
+                .images(HotelImageUtils.extractImageList(hotel))
                 .amenities(hotel.getAmenities())
                 .minPrice(minPrice)
                 .totalRooms(rooms.size())
@@ -275,7 +278,7 @@ public class HotelServiceImpl implements HotelService {
                 .city(hotel.getCity())
                 .starRating(hotel.getStarRating())
                 .thumbnailUrl(hotel.getThumbnailUrl())
-                .images(hotel.getImageList())
+                .images(HotelImageUtils.extractImageList(hotel))
                 .amenities(hotel.getAmenities())
                 .minPrice(minPrice)
                 .totalRooms(rooms.size())
@@ -405,7 +408,7 @@ public class HotelServiceImpl implements HotelService {
                             .address(hotel.getAddress())
                             .starRating(hotel.getStarRating())
                             .thumbnailUrl(hotel.getThumbnailUrl())
-                            .images(hotel.getImageList())
+                            .images(HotelImageUtils.extractImageList(hotel))
                             .minPricePerNight(minPrice)
                             .build();
                 })
@@ -494,7 +497,7 @@ public class HotelServiceImpl implements HotelService {
                         .address(hotel.getAddress())
                         .starRating(hotel.getStarRating())
                         .thumbnailUrl(hotel.getThumbnailUrl())
-                        .images(hotel.getImageList())
+                        .images(HotelImageUtils.extractImageList(hotel))
                         .minPricePerNight(minPriceMap.get(hotel.getId()))
                         .build())
                 .toList();
