@@ -523,12 +523,13 @@ public class BookingServiceImpl implements BookingService {
                 }
             }
 
-            // 2. Tự động duyệt đơn cho Chuyển khoản/VNPay nếu đã thanh toán thành công
+            // 2. Tự động duyệt đơn cho Chuyển khoản/VNPay (nếu đã thanh toán thành công) HOẶC Tiền mặt (CASH)
             if (com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING.equals(booking.getStatus())
                     && payment != null
-                    && (com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.VNPAY.equals(payment.getPaymentMethod())
-                        || com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CREDIT_CARD.equals(payment.getPaymentMethod()))
-                    && com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS.equals(payment.getStatus())) {
+                    && (com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CASH.equals(payment.getPaymentMethod())
+                        || ((com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.VNPAY.equals(payment.getPaymentMethod())
+                             || com.re.travelokahotelbookingservice.entity.enums.PaymentMethod.CREDIT_CARD.equals(payment.getPaymentMethod()))
+                            && com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS.equals(payment.getStatus())))) {
                 booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CONFIRMED);
                 bookingRepository.save(booking);
             }

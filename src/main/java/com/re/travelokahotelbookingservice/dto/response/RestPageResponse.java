@@ -19,25 +19,25 @@ import java.util.List;
  * Giải quyết triệt để lỗi "Cannot construct instance of PageImpl" và "PageRequest" khi đọc dữ liệu phân trang từ Redis.
  */
 @JsonIgnoreProperties(value = {"pageable", "sort"}, ignoreUnknown = true)
-public class RestPage<T> extends PageImpl<T> implements Serializable {
+public class RestPageResponse<T> extends PageImpl<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
     @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
-    public RestPage(@JsonProperty("content") List<T> content,
-                    @JsonProperty("number") int number,
-                    @JsonProperty("size") int size,
-                    @JsonProperty("totalElements") Long totalElements) {
+    public RestPageResponse(@JsonProperty("content") List<T> content,
+                            @JsonProperty("number") int number,
+                            @JsonProperty("size") int size,
+                            @JsonProperty("totalElements") Long totalElements) {
         super(content != null ? content : new ArrayList<>(),
               PageRequest.of(Math.max(number, 0), size > 0 ? size : 10),
               totalElements != null ? totalElements : 0);
     }
 
-    public RestPage(List<T> content, Pageable pageable, long total) {
+    public RestPageResponse(List<T> content, Pageable pageable, long total) {
         super(content, pageable, total);
     }
 
-    public RestPage(Page<T> page) {
+    public RestPageResponse(Page<T> page) {
         super(page.getContent(), page.getPageable(), page.getTotalElements());
     }
 

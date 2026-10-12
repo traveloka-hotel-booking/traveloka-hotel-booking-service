@@ -20,7 +20,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
               com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CHECKED_IN
           )
           AND (
-                (b.checkIn <= :checkOut AND b.checkOut >= :checkIn)
+                (b.checkIn < :checkOut AND b.checkOut > :checkIn)
               )
     """)
     List<Booking> findOverlappingBookings(
