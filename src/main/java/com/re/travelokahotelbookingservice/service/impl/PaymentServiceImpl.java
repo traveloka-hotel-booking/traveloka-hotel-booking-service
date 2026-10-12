@@ -90,7 +90,7 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setPaymentDate(null);
             paymentRepository.save(payment);
 
-            booking.setStatus(BookingStatus.PENDING);
+            booking.setStatus(BookingStatus.CONFIRMED);
             bookingRepository.save(booking);
 
             return PaymentResponseDto.builder()
@@ -100,7 +100,7 @@ public class PaymentServiceImpl implements PaymentService {
                     .transactionId(payment.getTransactionId())
                     .amount(payment.getAmount())
                     .status(PaymentStatus.PENDING)
-                    .message("Đã chọn thanh toán tiền mặt tại khách sạn khi nhận phòng")
+                    .message("Đã chọn thanh toán tiền mặt tại khách sạn (Tự động xác nhận đơn)")
                     .build();
         }
 

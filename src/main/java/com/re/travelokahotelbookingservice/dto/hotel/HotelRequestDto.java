@@ -1,4 +1,4 @@
-package com.re.travelokahotelbookingservice.dto.request;
+package com.re.travelokahotelbookingservice.dto.hotel;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

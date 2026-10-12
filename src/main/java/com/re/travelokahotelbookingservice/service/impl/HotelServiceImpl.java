@@ -1,8 +1,8 @@
 package com.re.travelokahotelbookingservice.service.impl;
 
-import com.re.travelokahotelbookingservice.dto.request.HotelRequestDto;
+import com.re.travelokahotelbookingservice.dto.hotel.HotelRequestDto;
 import com.re.travelokahotelbookingservice.dto.response.HotelResponseDto;
-import com.re.travelokahotelbookingservice.dto.response.RestPage;
+import com.re.travelokahotelbookingservice.dto.response.RestPageResponse;
 import com.re.travelokahotelbookingservice.dto.response.RoomResponseDto;
 import com.re.travelokahotelbookingservice.dto.hotel.HotelSearchResponseDto;
 import com.re.travelokahotelbookingservice.dto.hotel.HotelListItemDto;
@@ -372,7 +372,7 @@ public class HotelServiceImpl implements HotelService {
         List<Hotel> hotels = hotelPage.getContent();
 
         if (hotels.isEmpty()) {
-            return new RestPage<>(Collections.emptyList(), pageable, 0);
+            return new RestPageResponse<>(Collections.emptyList(), pageable, 0);
         }
 
         // 2. Lấy danh sách ID các khách sạn trong trang hiện tại
@@ -420,7 +420,7 @@ public class HotelServiceImpl implements HotelService {
                 .filter(Objects::nonNull)
                 .toList();
 
-        return new RestPage<>(content, pageable, content.size());
+        return new RestPageResponse<>(content, pageable, content.size());
     }
 
     //FR-07
@@ -481,7 +481,7 @@ public class HotelServiceImpl implements HotelService {
         List<Hotel> hotels = hotelPage.getContent();
 
         if (hotels.isEmpty()) {
-            return new RestPage<>(Collections.emptyList(), pageable, 0);
+            return new RestPageResponse<>(Collections.emptyList(), pageable, 0);
         }
 
         // Triệt tiêu N+1 Query: Lấy giá phòng thấp nhất của tất cả khách sạn trong 1 câu SQL duy nhất
@@ -507,7 +507,7 @@ public class HotelServiceImpl implements HotelService {
                         .build())
                 .toList();
 
-        return new RestPage<>(content, pageable, hotelPage.getTotalElements());
+        return new RestPageResponse<>(content, pageable, hotelPage.getTotalElements());
     }
 
     /**

@@ -1,6 +1,6 @@
 package com.re.travelokahotelbookingservice.service;
 
-import com.re.travelokahotelbookingservice.dto.request.HotelRequestDto;
+import com.re.travelokahotelbookingservice.dto.hotel.HotelRequestDto;
 import com.re.travelokahotelbookingservice.dto.response.HotelResponseDto;
 import com.re.travelokahotelbookingservice.dto.hotel.HotelSearchResponseDto;
 import com.re.travelokahotelbookingservice.dto.hotel.HotelListItemDto;
