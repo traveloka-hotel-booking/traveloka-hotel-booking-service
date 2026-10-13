@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -28,6 +29,9 @@ public class Hotel {
     private String city;
 
     private Integer starRating;
+
+    @Column(name = "price_per_night", precision = 15, scale = 2)
+    private BigDecimal pricePerNight;
 
     @Column(name = "thumbnail_url", columnDefinition = "TEXT")
     private String thumbnailUrl;

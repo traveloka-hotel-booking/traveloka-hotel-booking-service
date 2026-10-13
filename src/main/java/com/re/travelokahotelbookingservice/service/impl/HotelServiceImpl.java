@@ -110,6 +110,7 @@ public class HotelServiceImpl implements HotelService {
                 .address(request.getAddress().trim())
                 .city(request.getCity().trim())
                 .starRating(request.getStarRating() != null ? request.getStarRating() : 5)
+                .pricePerNight(request.getPricePerNight())
                 .thumbnailUrl(thumb)
                 .images(rawImages)
                 .amenities(request.getAmenities())
@@ -156,6 +157,7 @@ public class HotelServiceImpl implements HotelService {
         }
 
         if (request.getPricePerNight() != null && request.getPricePerNight().compareTo(BigDecimal.ZERO) > 0) {
+            hotel.setPricePerNight(request.getPricePerNight());
             List<Room> rooms = roomRepository.findByHotelId(id);
             if (!rooms.isEmpty()) {
                 // Cập nhật giá cho phòng có giá thấp nhất (giá khởi điểm của khách sạn)
@@ -228,10 +230,12 @@ public class HotelServiceImpl implements HotelService {
 
     private HotelResponseDto mapToResponseDto(Hotel hotel) {
         List<Room> rooms = roomRepository.findByHotelId(hotel.getId());
-        BigDecimal minPrice = rooms.stream()
-                .map(Room::getPricePerNight)
-                .min(BigDecimal::compareTo)
-                .orElse(BigDecimal.ZERO);
+        BigDecimal minPrice = (hotel.getPricePerNight() != null && hotel.getPricePerNight().compareTo(BigDecimal.ZERO) > 0)
+                ? hotel.getPricePerNight()
+                : rooms.stream()
+                    .map(Room::getPricePerNight)
+                    .min(BigDecimal::compareTo)
+                    .orElse(BigDecimal.ZERO);
 
         return HotelResponseDto.builder()
                 .id(hotel.getId())
@@ -252,10 +256,12 @@ public class HotelServiceImpl implements HotelService {
 
     private HotelResponseDto mapToResponseDtoWithRooms(Hotel hotel) {
         List<Room> rooms = roomRepository.findByHotelId(hotel.getId());
-        BigDecimal minPrice = rooms.stream()
-                .map(Room::getPricePerNight)
-                .min(BigDecimal::compareTo)
-                .orElse(BigDecimal.ZERO);
+        BigDecimal minPrice = (hotel.getPricePerNight() != null && hotel.getPricePerNight().compareTo(BigDecimal.ZERO) > 0)
+                ? hotel.getPricePerNight()
+                : rooms.stream()
+                    .map(Room::getPricePerNight)
+                    .min(BigDecimal::compareTo)
+                    .orElse(BigDecimal.ZERO);
 
         List<RoomResponseDto> roomDtos = rooms.stream()
                 .map(r -> RoomResponseDto.builder()
@@ -390,21 +396,35 @@ public class HotelServiceImpl implements HotelService {
         Map<Long, List<Room>> roomsByHotelId = allAvailableRooms.stream()
                 .collect(Collectors.groupingBy(r -> r.getHotel().getId()));
 
-        // 4. Map sang DTO, chỉ giữ hotel có phòng còn trống
+        // Kiểm tra các khách sạn đã từng được cấu hình phòng trong CSDL
+        List<Object[]> minPriceRows = roomRepository.findMinPricesByHotelIds(hotelIds);
+        Map<Long, BigDecimal> configuredHotelsMap = minPriceRows.stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (BigDecimal) row[1],
+                        (existing, replacement) -> existing
+                ));
+
+        // 4. Map sang DTO:
+        // - Khách sạn đã có phòng nhưng hết phòng trống trong khoảng ngày chọn -> loại bỏ (return null)
+        // - Khách sạn mới tạo chưa thêm phòng (!hasConfiguredRooms) -> vẫn hiển thị để đồng bộ
         List<HotelSearchResponseDto> content = hotels.stream()
                 .map(hotel -> {
                     List<Room> availableRooms = roomsByHotelId.getOrDefault(hotel.getId(), Collections.emptyList());
+                    boolean hasConfiguredRooms = configuredHotelsMap.containsKey(hotel.getId());
 
-                    // Nếu không có phòng phù hợp → loại hotel
-                    if (availableRooms.isEmpty()) {
+                    // Nếu khách sạn đã có phòng nhưng hiện tại không còn phòng trống phù hợp → loại hotel
+                    if (hasConfiguredRooms && availableRooms.isEmpty()) {
                         return null;
                     }
 
                     // Tính minPricePerNight
-                    BigDecimal minPrice = availableRooms.stream()
-                            .map(Room::getPricePerNight)
-                            .min(BigDecimal::compareTo)
-                            .orElse(null);
+                    BigDecimal minPrice = (hotel.getPricePerNight() != null && hotel.getPricePerNight().compareTo(BigDecimal.ZERO) > 0)
+                            ? hotel.getPricePerNight()
+                            : availableRooms.stream()
+                                .map(Room::getPricePerNight)
+                                .min(BigDecimal::compareTo)
+                                .orElse(configuredHotelsMap.getOrDefault(hotel.getId(), null));
 
                     return HotelSearchResponseDto.builder()
                             .id(hotel.getId())
@@ -495,16 +515,21 @@ public class HotelServiceImpl implements HotelService {
                 ));
 
         List<HotelListItemDto> content = hotels.stream()
-                .map(hotel -> HotelListItemDto.builder()
-                        .id(hotel.getId())
-                        .name(hotel.getName())
-                        .city(hotel.getCity())
-                        .address(hotel.getAddress())
-                        .starRating(hotel.getStarRating())
-                        .thumbnailUrl(hotel.getThumbnailUrl())
-                        .images(extractImageList(hotel))
-                        .minPricePerNight(minPriceMap.get(hotel.getId()))
-                        .build())
+                .map(hotel -> {
+                    BigDecimal minPrice = (hotel.getPricePerNight() != null && hotel.getPricePerNight().compareTo(BigDecimal.ZERO) > 0)
+                            ? hotel.getPricePerNight()
+                            : minPriceMap.get(hotel.getId());
+                    return HotelListItemDto.builder()
+                            .id(hotel.getId())
+                            .name(hotel.getName())
+                            .city(hotel.getCity())
+                            .address(hotel.getAddress())
+                            .starRating(hotel.getStarRating())
+                            .thumbnailUrl(hotel.getThumbnailUrl())
+                            .images(extractImageList(hotel))
+                            .minPricePerNight(minPrice)
+                            .build();
+                })
                 .toList();
 
         return new RestPageResponse<>(content, pageable, hotelPage.getTotalElements());
