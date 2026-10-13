@@ -73,6 +73,9 @@ public class DataInitializer implements CommandLineRunner {
                 jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1");
             } catch (Exception ignored) {}
         }
+        try {
+            jdbcTemplate.execute("ALTER TABLE users DROP COLUMN token_version");
+        } catch (Exception ignored) {}
     }
 
     private void initRealAdminUser() {
