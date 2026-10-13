@@ -123,7 +123,7 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         // Thu hồi toàn bộ Refresh Token của user bị khóa để buộc logout ngay lập tức
-        refreshTokenRepository.deleteByUserId(user.getId());
+//        refreshTokenRepository.deleteByUserId(user.getId());
     }
 
     @Override

@@ -49,6 +49,7 @@ public class SecurityConfig {
                                 "/api/v1/customer/payments/vnpay-callback",
                                 "/error",
                                 "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/reset-password",
                                 "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/api/v1/auth/logout",
                                 "/api/v1/auth/change-password").authenticated()

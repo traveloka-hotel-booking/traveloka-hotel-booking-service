@@ -63,6 +63,7 @@ public class UserMapperImpl implements UserMapper {
                     .phone(userDetails.getPhone())
                     .role(role)
                     .avatarUrl(userDetails.getAvatarUrl())
+                    .tokenVersion(userDetails.getTokenVersion())
                     .isEnabled(userDetails.isEnabled())
                     .createdAt(userDetails.getCreatedAt())
                     .build();
@@ -83,6 +84,7 @@ public class UserMapperImpl implements UserMapper {
                 .phone(user.getPhone())
                 .role(user.getRole())
                 .avatarUrl(user.getAvatarUrl())
+                .tokenVersion(user.getTokenVersion())
                 .isEnabled(user.getIsEnabled())
                 .createdAt(user.getCreatedAt())
                 .build();

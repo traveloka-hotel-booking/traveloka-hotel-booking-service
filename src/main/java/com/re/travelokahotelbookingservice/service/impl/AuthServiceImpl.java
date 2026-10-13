@@ -122,7 +122,7 @@ public class AuthServiceImpl implements AuthService {
 
         User user = refreshToken.getUser();
 
-        String accessToken = tokenProvider.generateAccessTokenFromEmail(user.getEmail());
+        String accessToken = tokenProvider.generateAccessTokenFromEmail(user.getEmail(), user.getTokenVersion());
         return RefreshTokenResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(request.getRefreshToken())
@@ -215,16 +215,28 @@ public class AuthServiceImpl implements AuthService {
        }
 
        if(resetPasswordToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-           throw new IllegalStateException("Reset token đã hết hạn");
+           throw new IllegalStateException("Liên kết đặt lại mật khẩu đã hết hạn");
        }
        User user = resetPasswordToken.getUser();
        String newPassword = passwordEncoder.encode(request.getNewPassword());
        user.setPassword(newPassword);
+       user.setTokenVersion(user.getTokenVersion() + 1);
        userRepository.save(user);
        resetPasswordToken.setUsed(true);
        resetPasswordTokenRepository.save(resetPasswordToken);
 
        refreshTokenRepository.deleteByUserId(user.getId());
+    }
+
+    @Override
+    public void validateResetToken(String token) {
+        ResetPasswordToken resetPasswordToken = resetPasswordTokenRepository.findByResetToken(token).orElseThrow(() -> new IllegalStateException("Liên kết đặt lại mật khẩu không hợp lệ"));
+        if (resetPasswordToken.isUsed()) {
+            throw new IllegalStateException( "Liên kết đặt lại mật khẩu đã được sử dụng");
+        }
+        if(!resetPasswordToken.getExpiryDate().isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException("Liên kết đặt lại mật khẩu đã hết hạn");
+        }
     }
 
 

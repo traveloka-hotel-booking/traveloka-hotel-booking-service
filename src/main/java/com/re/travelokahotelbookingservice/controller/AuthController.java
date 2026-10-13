@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -66,6 +68,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<?>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Cập nhật mật khẩu mới thành công");
+        return ResponseEntity.ok().body(apiResponse);
+    }
+
+    @PostMapping("/validate-reset-token")
+    public ResponseEntity<ApiResponse<?>> validateResetToken(@RequestBody Map<String, String> request) {
+        authService.validateResetToken(request.get("token"));
+        ApiResponse<?> apiResponse = new ApiResponse<>(200, "SUCCESS", "Liên kết hợp lệ");
         return ResponseEntity.ok().body(apiResponse);
     }
 }

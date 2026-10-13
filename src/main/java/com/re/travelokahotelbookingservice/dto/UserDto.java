@@ -26,6 +26,7 @@ public class UserDto implements Serializable {
     private String phone;
     private Role role;
     private String avatarUrl;
+    private int tokenVersion = 0;
     private Boolean isEnabled;
     private LocalDateTime createdAt;
 }

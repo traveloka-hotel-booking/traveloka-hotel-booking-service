@@ -42,7 +42,8 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         try {
             // Tối ưu hiệu năng: Dùng public_id động kèm timestamp để cache-busting tự nhiên,
             // tắt "invalidate: true" để không bị nghẽn mạng chờ Cloudinary purge toàn bộ CDN edges (tiết kiệm ~1.5s)
-            String publicId = "user-" + userId + "-" + System.currentTimeMillis();
+//            String publicId = "user-" + userId + "-" + System.currentTimeMillis();
+            String publicId = "user-" + userId;
 
             return cloudinary.uploader().upload(
                     file.getBytes(),

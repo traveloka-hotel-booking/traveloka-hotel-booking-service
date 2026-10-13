@@ -15,4 +15,5 @@ public interface AuthService {
     void changePassword(Authentication authentication, HttpServletRequest requestHeader, ChangePasswordRequest request);
     void forgotPassword(ForgotPasswordRequest request);
     void resetPassword(ResetPasswordRequest request);
+    void validateResetToken(String token);
 }

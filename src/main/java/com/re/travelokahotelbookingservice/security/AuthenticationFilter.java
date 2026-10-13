@@ -33,12 +33,21 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         try {
             Optional.ofNullable(tokenProvider.getToken(request))
                     .filter(StringUtils::hasText)
-                    // FIX BUG-01: Kiểm tra token có trong Sổ đen (BlackList) không
                     // Nếu token đã bị logout → từ chối, không cho đi tiếp
                     .filter(token -> !tokenBlackListRepository.existsByAccessToken(token))
                     .filter(tokenProvider::validateToken)
                     .map(tokenProvider::getSubject)
                     .map(userDetailsService::loadUserByUsername)
+                    //So sánh tokenVersion trước khi tạo Authenticaion
+                    .filter(userDetails -> {
+                        String token = tokenProvider.getToken(request);
+                        int jwtVersion = tokenProvider.getTokenVersion(token);
+                        if(!(userDetails instanceof  UserDetailsImpl customUserDetails)) {
+                            return false;
+                        }
+                        int currentVersion = customUserDetails.getTokenVersion();
+                        return jwtVersion == currentVersion;
+                    })
                     .map(userDetails -> {
                         UsernamePasswordAuthenticationToken auth =
                                 new UsernamePasswordAuthenticationToken(

@@ -37,14 +37,21 @@ public class TokenProvider {
     }
 
     public String generateAccessToken(Authentication authentication) {
-        return generateAccessTokenFromEmail(authentication.getName());
+        Object principal = authentication.getPrincipal();
+        if(principal instanceof  UserDetailsImpl userDetails) {
+            return generateAccessTokenFromEmail(
+                    userDetails.getEmail(),
+                    userDetails.getTokenVersion());
+        }
+        return generateAccessTokenFromEmail(authentication.getName(), 0);
     }
 
-    public String generateAccessTokenFromEmail(String email) {
+    public String generateAccessTokenFromEmail(String email, int tokenVersion) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + accessExpiration);
         return Jwts.builder()
                 .subject(email)
+                .claim("tokenVersion", tokenVersion)
                 .issuedAt(now)
                 .expiration(exp)
                 .signWith(key)
@@ -89,5 +96,20 @@ public class TokenProvider {
                 .parseSignedClaims(accessToken)
                 .getPayload();
         return claims.getExpiration().toInstant();
+    }
+
+    public int getTokenVersion(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        Integer version = claims.get("tokenVersion", Integer.class);
+
+        if(version == null) {
+            throw new JwtException("JWT thiết tokenVersion");
+        }
+        return version;
     }
 }

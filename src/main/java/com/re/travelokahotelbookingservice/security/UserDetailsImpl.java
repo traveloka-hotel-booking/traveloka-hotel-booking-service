@@ -57,6 +57,8 @@ public class UserDetailsImpl implements UserDetails {
 
     public String getAvatarUrl() { return user.getAvatarUrl(); }
 
+    public int getTokenVersion() { return user.getTokenVersion(); }
+
     public LocalDateTime getCreatedAt() {
         return user.getCreatedAt();
     }

@@ -96,8 +96,8 @@ public class DataInitializer implements CommandLineRunner {
                 jdbcTemplate.execute("UPDATE users SET gender = 'FEMALE' WHERE gender = 'Nữ' OR gender = 'Nu' OR gender = 'nu'");
             } catch (Exception ignored) {}
 
-            String upsertAdminSql = "INSERT INTO users (username, email, password, full_name, phone, role, is_enabled, created_at) " +
-                    "VALUES ('huutran', ?, ?, 'Trần Văn Hữu', '0901234567', 'ROLE_ADMIN', true, NOW()) " +
+            String upsertAdminSql = "INSERT INTO users (username, email, password, full_name, phone, role, is_enabled, created_at, token_version) " +
+                    "VALUES ('huutran', ?, ?, 'Trần Văn Hữu', '0901234567', 'ROLE_ADMIN', true, NOW(), 0) " +
                     "ON DUPLICATE KEY UPDATE password = VALUES(password), role = 'ROLE_ADMIN', is_enabled = true";
             jdbcTemplate.update(upsertAdminSql, adminEmail, adminPasswordHash);
 
