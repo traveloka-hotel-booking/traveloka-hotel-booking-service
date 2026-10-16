@@ -28,4 +28,6 @@ public class HotelResponseDto implements java.io.Serializable {
     private List<ReviewResponseDto> reviews;
     private Double averageRating;
     private Integer reviewCount;
+    private String ratingText;
+    private String latestReviewComment;
 }

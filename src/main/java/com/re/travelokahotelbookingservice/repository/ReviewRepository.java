@@ -23,4 +23,10 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     @Query("SELECT COUNT(r) FROM Review r WHERE r.hotel.id = :hotelId")
     Integer countByHotelId(@Param("hotelId") Long hotelId);
+
+    @Query("SELECT r.hotel.id, AVG(r.rating), COUNT(r.id) FROM Review r WHERE r.hotel.id IN :hotelIds GROUP BY r.hotel.id")
+    List<Object[]> findReviewStatsByHotelIds(@Param("hotelIds") List<Long> hotelIds);
+
+    @Query("SELECT r FROM Review r WHERE r.id IN (SELECT MAX(r2.id) FROM Review r2 WHERE r2.hotel.id IN :hotelIds GROUP BY r2.hotel.id)")
+    List<Review> findLatestReviewsByHotelIds(@Param("hotelIds") List<Long> hotelIds);
 }

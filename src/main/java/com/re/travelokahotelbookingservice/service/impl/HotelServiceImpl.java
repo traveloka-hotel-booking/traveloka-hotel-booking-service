@@ -42,6 +42,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -241,6 +242,27 @@ public class HotelServiceImpl implements HotelService {
                     .min(BigDecimal::compareTo)
                     .orElse(BigDecimal.ZERO);
 
+        Double avgRating = (reviewRepository != null) ? reviewRepository.calculateAverageRatingByHotelId(hotel.getId()) : null;
+        Integer count = (reviewRepository != null) ? reviewRepository.countByHotelId(hotel.getId()) : 0;
+        if (count != null && count > 0 && avgRating != null && avgRating > 0) {
+            avgRating = Math.round(avgRating * 10.0) / 10.0;
+        } else {
+            avgRating = null;
+            count = 0;
+        }
+        String ratingText = null;
+        if (avgRating != null && count > 0) {
+            ratingText = avgRating >= 9.0 ? "Xuất sắc" : (avgRating >= 8.0 ? "Tuyệt vời" : (avgRating >= 7.0 ? "Rất tốt" : "Hài lòng"));
+        }
+
+        String latestComment = null;
+        if (reviewRepository != null && count > 0) {
+            List<Review> latest = reviewRepository.findByHotelIdOrderByCreatedAtDesc(hotel.getId());
+            if (!latest.isEmpty() && latest.get(0).getComment() != null) {
+                latestComment = latest.get(0).getComment();
+            }
+        }
+
         return HotelResponseDto.builder()
                 .id(hotel.getId())
                 .name(hotel.getName())
@@ -255,6 +277,10 @@ public class HotelServiceImpl implements HotelService {
                 .totalRooms(rooms.size())
                 .createdAt(hotel.getCreatedAt())
                 .rooms(Collections.emptyList())
+                .averageRating(avgRating)
+                .reviewCount(count)
+                .ratingText(ratingText)
+                .latestReviewComment(latestComment)
                 .build();
     }
 
@@ -321,6 +347,12 @@ public class HotelServiceImpl implements HotelService {
         double avgRating = hotelReviews.isEmpty() ? 0.0 : hotelReviews.stream().mapToInt(Review::getRating).average().orElse(0.0);
         avgRating = Math.round(avgRating * 10.0) / 10.0;
 
+        String ratingText = null;
+        if (!hotelReviews.isEmpty() && avgRating > 0) {
+            ratingText = avgRating >= 9.0 ? "Xuất sắc" : (avgRating >= 8.0 ? "Tuyệt vời" : (avgRating >= 7.0 ? "Rất tốt" : "Hài lòng"));
+        }
+        String latestComment = hotelReviews.isEmpty() ? null : hotelReviews.get(0).getComment();
+
         return HotelResponseDto.builder()
                 .id(hotel.getId())
                 .name(hotel.getName())
@@ -336,8 +368,10 @@ public class HotelServiceImpl implements HotelService {
                 .createdAt(hotel.getCreatedAt())
                 .rooms(roomDtos)
                 .reviews(reviewDtos)
-                .averageRating(avgRating)
+                .averageRating(hotelReviews.isEmpty() ? null : avgRating)
                 .reviewCount(hotelReviews.size())
+                .ratingText(ratingText)
+                .latestReviewComment(latestComment)
                 .build();
     }
 
@@ -448,6 +482,26 @@ public class HotelServiceImpl implements HotelService {
                         (existing, replacement) -> existing
                 ));
 
+        Map<Long, Double> avgRatingMap = new HashMap<>();
+        Map<Long, Integer> reviewCountMap = new HashMap<>();
+        Map<Long, String> latestCommentMap = new HashMap<>();
+        if (reviewRepository != null && !hotelIds.isEmpty()) {
+            List<Object[]> stats = reviewRepository.findReviewStatsByHotelIds(hotelIds);
+            for (Object[] row : stats) {
+                Long hid = (Long) row[0];
+                Double avg = ((Number) row[1]).doubleValue();
+                Long count = ((Number) row[2]).longValue();
+                avgRatingMap.put(hid, Math.round(avg * 10.0) / 10.0);
+                reviewCountMap.put(hid, count.intValue());
+            }
+            List<Review> latestReviews = reviewRepository.findLatestReviewsByHotelIds(hotelIds);
+            for (Review r : latestReviews) {
+                if (r.getHotel() != null && r.getComment() != null) {
+                    latestCommentMap.put(r.getHotel().getId(), r.getComment());
+                }
+            }
+        }
+
         // 4. Map sang DTO:
         // - Khách sạn đã có phòng nhưng hết phòng trống trong khoảng ngày chọn -> loại bỏ (return null)
         // - Khách sạn mới tạo chưa thêm phòng (!hasConfiguredRooms) -> vẫn hiển thị để đồng bộ
@@ -469,6 +523,14 @@ public class HotelServiceImpl implements HotelService {
                                 .min(BigDecimal::compareTo)
                                 .orElse(configuredHotelsMap.getOrDefault(hotel.getId(), null));
 
+                    Double avgRating = avgRatingMap.get(hotel.getId());
+                    Integer reviewCount = reviewCountMap.getOrDefault(hotel.getId(), 0);
+                    String latestComment = latestCommentMap.get(hotel.getId());
+                    String ratingText = null;
+                    if (avgRating != null && reviewCount > 0) {
+                        ratingText = avgRating >= 9.0 ? "Xuất sắc" : (avgRating >= 8.0 ? "Tuyệt vời" : (avgRating >= 7.0 ? "Rất tốt" : "Hài lòng"));
+                    }
+
                     return HotelSearchResponseDto.builder()
                             .id(hotel.getId())
                             .name(hotel.getName())
@@ -478,6 +540,10 @@ public class HotelServiceImpl implements HotelService {
                             .thumbnailUrl(hotel.getThumbnailUrl())
                             .images(extractImageList(hotel))
                             .minPricePerNight(minPrice)
+                            .averageRating(avgRating)
+                            .reviewCount(reviewCount)
+                            .latestReviewComment(latestComment)
+                            .ratingText(ratingText)
                             .build();
                 })
                 .filter(Objects::nonNull)
@@ -557,11 +623,39 @@ public class HotelServiceImpl implements HotelService {
                         (existing, replacement) -> existing
                 ));
 
+        Map<Long, Double> avgRatingMap = new HashMap<>();
+        Map<Long, Integer> reviewCountMap = new HashMap<>();
+        Map<Long, String> latestCommentMap = new HashMap<>();
+        if (reviewRepository != null && !hotelIds.isEmpty()) {
+            List<Object[]> stats = reviewRepository.findReviewStatsByHotelIds(hotelIds);
+            for (Object[] row : stats) {
+                Long hid = (Long) row[0];
+                Double avg = ((Number) row[1]).doubleValue();
+                Long count = ((Number) row[2]).longValue();
+                avgRatingMap.put(hid, Math.round(avg * 10.0) / 10.0);
+                reviewCountMap.put(hid, count.intValue());
+            }
+            List<Review> latestReviews = reviewRepository.findLatestReviewsByHotelIds(hotelIds);
+            for (Review r : latestReviews) {
+                if (r.getHotel() != null && r.getComment() != null) {
+                    latestCommentMap.put(r.getHotel().getId(), r.getComment());
+                }
+            }
+        }
+
         List<HotelListItemDto> content = hotels.stream()
                 .map(hotel -> {
                     BigDecimal minPrice = (hotel.getPricePerNight() != null && hotel.getPricePerNight().compareTo(BigDecimal.ZERO) > 0)
                             ? hotel.getPricePerNight()
                             : minPriceMap.get(hotel.getId());
+                    Double avgRating = avgRatingMap.get(hotel.getId());
+                    Integer reviewCount = reviewCountMap.getOrDefault(hotel.getId(), 0);
+                    String latestComment = latestCommentMap.get(hotel.getId());
+                    String ratingText = null;
+                    if (avgRating != null && reviewCount > 0) {
+                        ratingText = avgRating >= 9.0 ? "Xuất sắc" : (avgRating >= 8.0 ? "Tuyệt vời" : (avgRating >= 7.0 ? "Rất tốt" : "Hài lòng"));
+                    }
+
                     return HotelListItemDto.builder()
                             .id(hotel.getId())
                             .name(hotel.getName())
@@ -571,6 +665,10 @@ public class HotelServiceImpl implements HotelService {
                             .thumbnailUrl(hotel.getThumbnailUrl())
                             .images(extractImageList(hotel))
                             .minPricePerNight(minPrice)
+                            .averageRating(avgRating)
+                            .reviewCount(reviewCount)
+                            .latestReviewComment(latestComment)
+                            .ratingText(ratingText)
                             .build();
                 })
                 .toList();

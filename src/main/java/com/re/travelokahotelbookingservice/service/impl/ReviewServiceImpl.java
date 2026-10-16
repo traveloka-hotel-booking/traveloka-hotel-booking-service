@@ -37,7 +37,9 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Caching(evict = {
             @CacheEvict(value = "hotel_detail", allEntries = true),
-            @CacheEvict(value = "hotels_list", allEntries = true)
+            @CacheEvict(value = "hotels_list", allEntries = true),
+            @CacheEvict(value = "filter_hotels", allEntries = true),
+            @CacheEvict(value = "search_hotels", allEntries = true)
     })
     @Transactional
     public ReviewResponseDto createReview(CreateReviewRequest request, String currentUsername) {
