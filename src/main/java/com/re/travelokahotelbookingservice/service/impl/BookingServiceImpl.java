@@ -38,15 +38,18 @@ public class BookingServiceImpl implements BookingService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final com.re.travelokahotelbookingservice.repository.PaymentRepository paymentRepository;
+    private final com.re.travelokahotelbookingservice.repository.ReviewRepository reviewRepository;
 
     public BookingServiceImpl(BookingRepository bookingRepository,
                               RoomRepository roomRepository,
                               UserRepository userRepository,
-                              com.re.travelokahotelbookingservice.repository.PaymentRepository paymentRepository) {
+                              com.re.travelokahotelbookingservice.repository.PaymentRepository paymentRepository,
+                              com.re.travelokahotelbookingservice.repository.ReviewRepository reviewRepository) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
         this.paymentRepository = paymentRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     @Override
@@ -588,7 +591,8 @@ public class BookingServiceImpl implements BookingService {
                 .numberOfGuests(booking.getNumberOfGuests())
                 .totalPrice(booking.getTotalPrice())
                 .status(booking.getStatus() != null ? booking.getStatus().name() : null)
-                .createdAt(booking.getCreatedAt());
+                .createdAt(booking.getCreatedAt())
+                .isReviewed(reviewRepository != null && booking.getId() != null && reviewRepository.existsByBookingId(booking.getId()));
 
         if (user != null) {
             builder.userId(user.getId())

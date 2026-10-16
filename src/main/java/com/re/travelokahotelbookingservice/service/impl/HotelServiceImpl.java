@@ -20,6 +20,9 @@ import com.re.travelokahotelbookingservice.repository.BookingRepository;
 import com.re.travelokahotelbookingservice.repository.HotelRepository;
 import com.re.travelokahotelbookingservice.repository.PaymentRepository;
 import com.re.travelokahotelbookingservice.repository.RoomRepository;
+import com.re.travelokahotelbookingservice.repository.ReviewRepository;
+import com.re.travelokahotelbookingservice.entity.Review;
+import java.time.format.DateTimeFormatter;
 import com.re.travelokahotelbookingservice.service.CloudinaryService;
 import com.re.travelokahotelbookingservice.service.HotelService;
 import jakarta.persistence.EntityNotFoundException;
@@ -59,6 +62,7 @@ public class HotelServiceImpl implements HotelService {
     private final CloudinaryService cloudinaryService;
     private final BookingRepository bookingRepository;
     private final PaymentRepository paymentRepository;
+    private final ReviewRepository reviewRepository;
 
 
     @Override
@@ -281,6 +285,42 @@ public class HotelServiceImpl implements HotelService {
                         .build())
                 .collect(Collectors.toList());
 
+        List<Review> hotelReviews = (reviewRepository != null) 
+                ? reviewRepository.findByHotelIdOrderByCreatedAtDesc(hotel.getId()) 
+                : Collections.emptyList();
+
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        List<com.re.travelokahotelbookingservice.dto.response.ReviewResponseDto> reviewDtos = hotelReviews.stream()
+                .map(rev -> {
+                    String author = "Khách lưu trú";
+                    String avatar = null;
+                    if (rev.getUser() != null) {
+                        avatar = rev.getUser().getAvatarUrl();
+                        if (rev.getUser().getFullName() != null && !rev.getUser().getFullName().isBlank()) {
+                            author = rev.getUser().getFullName();
+                        } else if (rev.getUser().getUsername() != null) {
+                            author = rev.getUser().getUsername();
+                        }
+                    }
+                    String formattedDate = rev.getCreatedAt() != null ? rev.getCreatedAt().format(dtf) : "Gần đây";
+                    return com.re.travelokahotelbookingservice.dto.response.ReviewResponseDto.builder()
+                            .id(rev.getId())
+                            .hotelId(hotel.getId())
+                            .bookingId(rev.getBooking() != null ? rev.getBooking().getId() : null)
+                            .userId(rev.getUser() != null ? rev.getUser().getId() : null)
+                            .author(author)
+                            .userAvatar(avatar)
+                            .rating(rev.getRating())
+                            .comment(rev.getComment())
+                            .date(formattedDate)
+                            .createdAt(rev.getCreatedAt())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        double avgRating = hotelReviews.isEmpty() ? 0.0 : hotelReviews.stream().mapToInt(Review::getRating).average().orElse(0.0);
+        avgRating = Math.round(avgRating * 10.0) / 10.0;
+
         return HotelResponseDto.builder()
                 .id(hotel.getId())
                 .name(hotel.getName())
@@ -295,6 +335,9 @@ public class HotelServiceImpl implements HotelService {
                 .totalRooms(rooms.size())
                 .createdAt(hotel.getCreatedAt())
                 .rooms(roomDtos)
+                .reviews(reviewDtos)
+                .averageRating(avgRating)
+                .reviewCount(hotelReviews.size())
                 .build();
     }
 
