@@ -41,6 +41,14 @@ public class DataInitializer implements CommandLineRunner {
             // Tắt ràng buộc khóa ngoại tạm thời để xóa dọn dẹp sạch sẽ
             jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0");
 
+            // 0. Xóa các review liên quan đến dữ liệu mẫu
+            try {
+                jdbcTemplate.execute("DELETE FROM reviews WHERE booking_id IN (" +
+                        "SELECT b.id FROM bookings b WHERE b.room_id IN (" +
+                        "SELECT r.id FROM rooms r WHERE r.hotel_id IN (1, 2, 3, 4, 5, 6)) OR b.user_id IN (" +
+                        "SELECT u.id FROM users u WHERE u.email IN ('admin@traveloka.vn', 'customer@traveloka.vn') OR u.username IN ('admin', 'customer_demo')))");
+            } catch (Exception ignored) {}
+
             // 1. Xóa các thanh toán liên quan đến dữ liệu mẫu hoặc tài khoản demo
             jdbcTemplate.execute("DELETE FROM payments WHERE booking_id IN (" +
                     "SELECT b.id FROM bookings b WHERE b.room_id IN (" +
@@ -91,6 +99,22 @@ public class DataInitializer implements CommandLineRunner {
             // Đảm bảo cột amenities tồn tại trong bảng rooms
             try {
                 jdbcTemplate.execute("ALTER TABLE rooms ADD COLUMN amenities TEXT");
+            } catch (Exception ignored) {}
+
+            // Đảm bảo bảng reviews đã được tạo
+            try {
+                jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS reviews (" +
+                        "id BIGINT AUTO_INCREMENT PRIMARY KEY, " +
+                        "hotel_id BIGINT NOT NULL, " +
+                        "user_id BIGINT NOT NULL, " +
+                        "booking_id BIGINT NOT NULL UNIQUE, " +
+                        "rating INT NOT NULL, " +
+                        "comment TEXT, " +
+                        "created_at DATETIME NOT NULL, " +
+                        "CONSTRAINT fk_reviews_hotel FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE, " +
+                        "CONSTRAINT fk_reviews_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, " +
+                        "CONSTRAINT fk_reviews_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE" +
+                        ")");
             } catch (Exception ignored) {}
 
             // Chuẩn hóa Enum Gender

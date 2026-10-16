@@ -25,4 +25,9 @@ public class HotelResponseDto implements java.io.Serializable {
     private Integer totalRooms;
     private LocalDateTime createdAt;
     private List<RoomResponseDto> rooms;
+    private List<ReviewResponseDto> reviews;
+    private Double averageRating;
+    private Integer reviewCount;
+    private String ratingText;
+    private String latestReviewComment;
 }

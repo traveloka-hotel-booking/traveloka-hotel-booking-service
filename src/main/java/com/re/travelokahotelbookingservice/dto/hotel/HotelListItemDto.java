@@ -23,5 +23,9 @@ public class HotelListItemDto implements Serializable {
     private String thumbnailUrl;
     private java.util.List<String> images;
     private BigDecimal minPricePerNight;
+    private Double averageRating;
+    private Integer reviewCount;
+    private String latestReviewComment;
+    private String ratingText;
 }
 

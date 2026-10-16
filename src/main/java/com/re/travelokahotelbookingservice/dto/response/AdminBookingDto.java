@@ -55,4 +55,7 @@ public class AdminBookingDto implements Serializable {
     private String paymentStatus; // PENDING, SUCCESS, FAILED
     private String transactionId;
     private LocalDateTime paymentDate;
+
+    // Trạng thái đánh giá
+    private Boolean isReviewed;
 }
