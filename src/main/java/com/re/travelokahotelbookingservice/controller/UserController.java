@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/customer")
 public class UserController {
     private final UserService userService;
+    private final com.re.travelokahotelbookingservice.service.GoogleGeocodingService googleGeocodingService;
 
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<UserDto>> getProfile(Authentication authentication) {
@@ -37,5 +38,11 @@ public class UserController {
         String filePath = userService.updateAvatar(file, authentication);
         ApiResponse<String> apiResponse = new ApiResponse<>(200, "SUCCESS", filePath);
         return ResponseEntity.ok().body(apiResponse);
+    }
+
+    @GetMapping("/geocoding/validate")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> validateAddress(@RequestParam String address) {
+        java.util.Map<String, Object> result = googleGeocodingService.geocodeAddress(address);
+        return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", result));
     }
 }
