@@ -25,6 +25,7 @@ import com.re.travelokahotelbookingservice.entity.Review;
 import java.time.format.DateTimeFormatter;
 import com.re.travelokahotelbookingservice.service.CloudinaryService;
 import com.re.travelokahotelbookingservice.service.HotelService;
+import com.re.travelokahotelbookingservice.service.GoogleGeocodingService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,6 +65,7 @@ public class HotelServiceImpl implements HotelService {
     private final BookingRepository bookingRepository;
     private final PaymentRepository paymentRepository;
     private final ReviewRepository reviewRepository;
+    private final GoogleGeocodingService googleGeocodingService;
 
 
     @Override
@@ -109,10 +111,15 @@ public class HotelServiceImpl implements HotelService {
             rawImages = thumb;
         }
 
+        String rawAddress = request.getAddress() != null ? request.getAddress().trim() : "";
+        String standardizedAddress = (googleGeocodingService != null && !rawAddress.isBlank()) 
+                ? googleGeocodingService.validateAddress(rawAddress) 
+                : rawAddress;
+
         Hotel hotel = Hotel.builder()
                 .name(request.getName().trim())
                 .description(request.getDescription())
-                .address(request.getAddress().trim())
+                .address(standardizedAddress)
                 .city(request.getCity().trim())
                 .starRating(request.getStarRating() != null ? request.getStarRating() : 5)
                 .pricePerNight(request.getPricePerNight())
@@ -142,7 +149,13 @@ public class HotelServiceImpl implements HotelService {
 
         hotel.setName(request.getName().trim());
         hotel.setDescription(request.getDescription());
-        hotel.setAddress(request.getAddress().trim());
+        if (request.getAddress() != null) {
+            String rawAddress = request.getAddress().trim();
+            String standardizedAddress = (googleGeocodingService != null && !rawAddress.isBlank()) 
+                    ? googleGeocodingService.validateAddress(rawAddress) 
+                    : rawAddress;
+            hotel.setAddress(standardizedAddress);
+        }
         hotel.setCity(request.getCity().trim());
         if (request.getStarRating() != null) {
             hotel.setStarRating(request.getStarRating());
