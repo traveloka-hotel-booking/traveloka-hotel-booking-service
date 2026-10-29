@@ -35,3 +35,14 @@ out/
 
 ### VS Code ###
 .vscode/
+### Sensitive Files & Local Config ###
+.env
+.env.local
+.env.*.local
+*.env
+
+### Logs ###
+*.log
+
+### macOS files ###
+.DS_Store
