@@ -27,6 +27,25 @@ services:
     depends_on:
       - redis
 
+  # 3. Ứng dụng Backend Spring Boot (Tích hợp trực tiếp với Dockerfile)
+  backend-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: traveloka-backend-app
+    restart: on-failure
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - REDIS_LOCAL_HOST=redis
+      - REDIS_LOCAL_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
 volumes:
   redis_data:
     driver: local
