@@ -6,6 +6,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,9 +54,21 @@ public class TokenProvider {
 
 
     public String getToken(HttpServletRequest request) {
+        // 1. Ưu tiên đọc từ header Authorization (giữ tương thích hoàn toàn với Frontend hiện tại)
         String bearer = request.getHeader("Authorization");
-        return (StringUtils.hasText(bearer) && bearer.startsWith("Bearer "))
-                ? bearer.substring(7) : null;
+        if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
+            return bearer.substring(7);
+        }
+
+        // 2. Nếu không có header Authorization, đọc từ HttpOnly Cookie ("accessToken")
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName()) && StringUtils.hasText(cookie.getValue())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 
     public boolean validateToken(String token) {
