@@ -313,7 +313,29 @@ public class HotelServiceImpl implements HotelService {
                     .min(BigDecimal::compareTo)
                     .orElse(BigDecimal.ZERO);
 
+        LocalDate today = LocalDate.now();
+        LocalDate tomorrow = today.plusDays(1);
+        List<Room> availableTodayRooms = roomRepository.findAvailableRoomsByHotelIds(
+                List.of(hotel.getId()),
+                1,
+                today,
+                tomorrow
+        );
+        java.util.Set<Long> availableTodayRoomIds = availableTodayRooms.stream()
+                .map(Room::getId)
+                .collect(Collectors.toSet());
+
         List<RoomResponseDto> roomDtos = rooms.stream()
+                .sorted((r1, r2) -> {
+                    boolean a1 = availableTodayRoomIds.contains(r1.getId());
+                    boolean a2 = availableTodayRoomIds.contains(r2.getId());
+                    if (a1 != a2) {
+                        return a1 ? -1 : 1;
+                    }
+                    BigDecimal p1 = r1.getPricePerNight() != null ? r1.getPricePerNight() : BigDecimal.ZERO;
+                    BigDecimal p2 = r2.getPricePerNight() != null ? r2.getPricePerNight() : BigDecimal.ZERO;
+                    return p1.compareTo(p2);
+                })
                 .map(r -> RoomResponseDto.builder()
                         .id(r.getId())
                         .hotelId(hotel.getId())
@@ -322,7 +344,7 @@ public class HotelServiceImpl implements HotelService {
                         .description(r.getDescription())
                         .maxGuests(r.getMaxGuests())
                         .pricePerNight(r.getPricePerNight())
-                        .status(r.getStatus())
+                        .status(availableTodayRoomIds.contains(r.getId()) ? "AVAILABLE" : r.getStatus())
                         .imageUrl(r.getImageUrl())
                         .bedType(r.getBedType())
                         .roomSize(r.getRoomSize())

@@ -262,7 +262,7 @@ public class PaymentServiceImpl implements PaymentService {
         vnp_Params.put("vnp_OrderInfo", "Thanh toan don dat phong " + booking.getId());
         vnp_Params.put("vnp_OrderType", "other");
         vnp_Params.put("vnp_Locale", "vn");
-        vnp_Params.put("vnp_ReturnUrl", vnPayConfig.getVnpReturnUrl());
+        vnp_Params.put("vnp_ReturnUrl", resolveReturnUrl(request));
         vnp_Params.put("vnp_IpAddr", getClientIp(request));
 
         Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
@@ -311,6 +311,25 @@ public class PaymentServiceImpl implements PaymentService {
         queryUrl += "&vnp_SecureHash=" + vnp_SecureHash;
 
         return vnPayConfig.getVnpPayUrl() + "?" + queryUrl;
+    }
+
+    private String resolveReturnUrl(HttpServletRequest request) {
+        if (request != null) {
+            String origin = request.getHeader("Origin");
+            if (origin != null && (origin.startsWith("http://") || origin.startsWith("https://"))) {
+                return origin.replaceAll("/+$", "") + "/payment-callback";
+            }
+            String referer = request.getHeader("Referer");
+            if (referer != null && (referer.startsWith("http://") || referer.startsWith("https://"))) {
+                try {
+                    java.net.URI uri = java.net.URI.create(referer);
+                    String base = uri.getScheme() + "://" + uri.getAuthority();
+                    return base + "/payment-callback";
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return vnPayConfig.getVnpReturnUrl();
     }
 
     private String getClientIp(HttpServletRequest request) {
