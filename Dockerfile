@@ -29,5 +29,5 @@ ENV SERVER_PORT=8080
 
 EXPOSE 8080
 
-# Run with memory tuning suited for 512MB container environments
-ENTRYPOINT ["sh", "-c", "java -Xmx350m -Xss512k -Dserver.port=${PORT:-${SERVER_PORT:-8080}} -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-prod} -jar app.jar"]
+# Run with memory tuning & fast JIT startup flags suited for 512MB container environments
+ENTRYPOINT ["sh", "-c", "java -Xmx350m -Xss512k -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Dserver.port=${PORT:-${SERVER_PORT:-8080}} -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-prod} -jar app.jar"]
