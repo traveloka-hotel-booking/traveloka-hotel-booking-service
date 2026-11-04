@@ -14,10 +14,15 @@ import java.util.*;
 @Configuration
 public class VNPayConfig {
 
+    private static final String DEFAULT_SANDBOX_PAY_URL = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+    private static final String DEFAULT_SANDBOX_RETURN_URL = "https://traveloka-hotel-booking-app.vercel.app/payment-callback";
+    private static final String DEFAULT_SANDBOX_TMN_CODE = "WBPP3F9E";
+    private static final String DEFAULT_SANDBOX_HASH_SECRET = "KFGDKTFIGHOIFTEWDOFLFQBXEADGSHYC";
+
     @Value("${vnpay.pay-url:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}")
     private String vnpPayUrl;
 
-    @Value("${vnpay.return-url:http://localhost:5173/payment-callback}")
+    @Value("${vnpay.return-url:https://traveloka-hotel-booking-app.vercel.app/payment-callback}")
     private String vnpReturnUrl;
 
     @Value("${vnpay.tmn-code:WBPP3F9E}")
@@ -31,6 +36,22 @@ public class VNPayConfig {
 
     @Value("${vnpay.command:pay}")
     private String vnpCommand;
+
+    public String getVnpPayUrl() {
+        return (vnpPayUrl != null && !vnpPayUrl.isBlank()) ? vnpPayUrl.trim() : DEFAULT_SANDBOX_PAY_URL;
+    }
+
+    public String getVnpReturnUrl() {
+        return (vnpReturnUrl != null && !vnpReturnUrl.isBlank()) ? vnpReturnUrl.trim() : DEFAULT_SANDBOX_RETURN_URL;
+    }
+
+    public String getVnpTmnCode() {
+        return (vnpTmnCode != null && !vnpTmnCode.isBlank()) ? vnpTmnCode.trim() : DEFAULT_SANDBOX_TMN_CODE;
+    }
+
+    public String getVnpHashSecret() {
+        return (vnpHashSecret != null && !vnpHashSecret.isBlank()) ? vnpHashSecret.trim() : DEFAULT_SANDBOX_HASH_SECRET;
+    }
 
     public static String hmacSHA512(final String key, final String data) {
         try {

@@ -55,6 +55,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Caching(evict = {
             @CacheEvict(value = "search_hotels", allEntries = true),
+            @CacheEvict(value = "hotel_detail", allEntries = true),
             @CacheEvict(value = "user_bookings", allEntries = true)
     })
     @Transactional
@@ -75,11 +76,11 @@ public class BookingServiceImpl implements BookingService {
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new EntityNotFoundException("Room not found with ID: " + request.getRoomId()));
 
-        // 3. Kiểm tra số khách không vượt quá maxGuests
-        if (request.getNumberOfGuests() > room.getMaxGuests()) {
-            throw new IllegalArgumentException("Number of guests (" + request.getNumberOfGuests() 
-                    + ") exceeds room capacity (" + room.getMaxGuests() + ")");
-        }
+        // 3. Tự động chuẩn hóa số khách phù hợp với sức chứa tối đa của phòng
+        int maxGuests = (room.getMaxGuests() != null && room.getMaxGuests() > 0) ? room.getMaxGuests() : 2;
+        int effectiveGuests = (request.getNumberOfGuests() != null && request.getNumberOfGuests() > 0)
+                ? Math.min(request.getNumberOfGuests(), maxGuests)
+                : Math.min(2, maxGuests);
 
         // 4. Kiểm tra phòng còn trống (JPQL chống chồng lấp theo ngày)
         List<Booking> overlapping = bookingRepository.findOverlappingBookings(
@@ -87,6 +88,30 @@ public class BookingServiceImpl implements BookingService {
                 request.getCheckIn(),
                 request.getCheckOut()
         );
+
+        // Tự động giải phóng các đơn PENDING chưa thanh toán của chính user này hoặc đơn PENDING treo quá 10 phút / đã qua ngày check-in
+        if (!overlapping.isEmpty()) {
+            LocalDate today = LocalDate.now();
+            LocalDateTime staleThreshold = LocalDateTime.now().minusMinutes(10);
+            java.util.List<Booking> activeConflicts = new java.util.ArrayList<>();
+
+            for (Booking ob : overlapping) {
+                Payment obPay = ob.getPayment();
+                boolean isUnpaidPending = com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING.equals(ob.getStatus())
+                        && (obPay == null || !com.re.travelokahotelbookingservice.entity.enums.PaymentStatus.SUCCESS.equals(obPay.getStatus()));
+                boolean isSameUser = ob.getUser() != null && ob.getUser().getId().equals(user.getId());
+                boolean isPastOrStale = (ob.getCheckIn() != null && ob.getCheckIn().isBefore(today))
+                        || (ob.getCreatedAt() != null && ob.getCreatedAt().isBefore(staleThreshold));
+
+                if (isUnpaidPending && (isSameUser || isPastOrStale)) {
+                    ob.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.CANCELLED);
+                    bookingRepository.save(ob);
+                } else {
+                    activeConflicts.add(ob);
+                }
+            }
+            overlapping = activeConflicts;
+        }
 
         if (!overlapping.isEmpty()) {
             throw new RoomNotAvailableException("Phòng đã được đặt trong khoảng thời gian này");
@@ -107,7 +132,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setRoom(room);
         booking.setCheckIn(request.getCheckIn());
         booking.setCheckOut(request.getCheckOut());
-        booking.setNumberOfGuests(request.getNumberOfGuests());
+        booking.setNumberOfGuests(effectiveGuests);
         booking.setTotalPrice(totalPrice);
         booking.setStatus(com.re.travelokahotelbookingservice.entity.enums.BookingStatus.PENDING);
         booking.setCreatedAt(LocalDateTime.now());
