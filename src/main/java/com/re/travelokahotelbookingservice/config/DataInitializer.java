@@ -1,5 +1,6 @@
 package com.re.travelokahotelbookingservice.config;
 
+import com.re.travelokahotelbookingservice.service.SystemWarmupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -10,6 +11,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.CompletableFuture;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -19,21 +22,29 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final RedisConnectionFactory redisConnectionFactory;
     private final CacheManager cacheManager;
+    private final SystemWarmupService systemWarmupService;
 
     @Override
-    public void run(String... args) throws Exception {
-        log.info("Starting DataInitializer: Cleaning demo accounts and sample hotel data for production readiness...");
+    public void run(String... args) {
+        // Thực thi ngầm việc dọn dẹp dữ liệu mẫu và làm nóng bộ nhớ đệm (Cache Warm-up)
+        // để không chặn luồng khởi động chính của Spring Boot (giúp cổng HTTP mở nhanh nhất có thể).
+        CompletableFuture.runAsync(() -> {
+            log.info("Starting background DataInitializer & Cache Warm-up...");
 
-        // 1. Dọn dẹp triệt để các tài khoản demo và dữ liệu khách sạn/phòng mẫu cũ trong DB
-        cleanupDemoData();
+            // 1. Dọn dẹp triệt để các tài khoản demo và dữ liệu khách sạn/phòng mẫu cũ trong DB
+            cleanupDemoData();
 
-        // 2. Khởi tạo/Cập nhật duy nhất tài khoản Quản trị viên (Admin) chính thức
-        initRealAdminUser();
+            // 2. Khởi tạo/Cập nhật duy nhất tài khoản Quản trị viên (Admin) chính thức
+            initRealAdminUser();
 
-        // 3. Làm sạch bộ nhớ đệm Redis
-        clearRedisCache();
+            // 3. Làm sạch bộ nhớ đệm cũ
+            clearRedisCache();
 
-        log.info("DataInitializer completed: System is now running strictly with real production data.");
+            // 4. Làm nóng ngay bộ nhớ đệm (L1 RAM + L2 Redis) cho Trang chủ & Danh sách khách sạn
+            systemWarmupService.warmupInitialCaches();
+
+            log.info("DataInitializer & Cache Warm-up completed: System is ready with pre-warmed cache.");
+        });
     }
 
     private void cleanupDemoData() {
