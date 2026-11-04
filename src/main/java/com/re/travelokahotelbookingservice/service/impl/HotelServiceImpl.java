@@ -69,10 +69,17 @@ public class HotelServiceImpl implements HotelService {
 
 
     @Override
+    @Cacheable(
+            value = "hotels_list",
+            key = "(#search != null ? #search.toLowerCase().trim() : 'ALL') + '_' + (#city != null ? #city.toLowerCase().trim() : 'ALL') + '_' + (#pageable != null ? #pageable.pageNumber : 0) + '_' + (#pageable != null ? #pageable.pageSize : 10)"
+    )
     @Transactional(readOnly = true)
     public Page<HotelResponseDto> getAllHotels(String search, String city, Pageable pageable) {
         Page<Hotel> hotelsPage = hotelRepository.searchHotels(city, search, pageable);
-        return hotelsPage.map(this::mapToResponseDto);
+        List<HotelResponseDto> dtoList = hotelsPage.getContent().stream()
+                .map(this::mapToResponseDto)
+                .toList();
+        return new RestPageResponse<>(dtoList, pageable, hotelsPage.getTotalElements());
     }
 
     @Override

@@ -27,6 +27,23 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     private final TokenBlackListRepository tokenBlackListRepository;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String method = request.getMethod();
+        String uri = request.getRequestURI();
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            return true;
+        }
+        if ("GET".equalsIgnoreCase(method) && uri != null) {
+            // Bỏ qua truy vấn DB kiểm tra JWT cho các endpoint public hoàn toàn (danh sách khách sạn, health check)
+            // giúp giảm 2 câu truy vấn SQL mỗi request khi tải trang lần đầu.
+            return uri.startsWith("/api/v1/hotels")
+                    || uri.equals("/api/v1/health")
+                    || uri.equals("/health");
+        }
+        return false;
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {

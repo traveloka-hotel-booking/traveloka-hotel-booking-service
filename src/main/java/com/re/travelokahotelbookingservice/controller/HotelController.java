@@ -13,10 +13,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -25,6 +27,10 @@ import java.util.Arrays;
 @RequestMapping("/api/v1/hotels")
 @RequiredArgsConstructor
 public class HotelController {
+
+    private static final CacheControl PUBLIC_SHORT_CACHE = CacheControl.maxAge(30, TimeUnit.SECONDS)
+            .cachePublic()
+            .staleWhileRevalidate(120, TimeUnit.SECONDS);
 
     private final HotelService hotelService;
     private final RoomService roomService;
@@ -38,19 +44,25 @@ public class HotelController {
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         Page<HotelResponseDto> result = hotelService.getAllHotels(search, city, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", result));
+        return ResponseEntity.ok()
+                .cacheControl(PUBLIC_SHORT_CACHE)
+                .body(new ApiResponse<>(200, "SUCCESS", result));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<HotelResponseDto>> getHotelById(@PathVariable Long id) {
         HotelResponseDto result = hotelService.getHotelById(id);
-        return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", result));
+        return ResponseEntity.ok()
+                .cacheControl(PUBLIC_SHORT_CACHE)
+                .body(new ApiResponse<>(200, "SUCCESS", result));
     }
 
     @GetMapping("/{id}/rooms")
     public ResponseEntity<ApiResponse<List<RoomResponseDto>>> getHotelRooms(@PathVariable Long id) {
         List<RoomResponseDto> result = roomService.getRoomsByHotelId(id);
-        return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", result));
+        return ResponseEntity.ok()
+                .cacheControl(PUBLIC_SHORT_CACHE)
+                .body(new ApiResponse<>(200, "SUCCESS", result));
     }
 
     // FR-06: Tìm kiếm khách sạn (hỗ trợ tìm toàn quốc khi city để trống)
@@ -65,7 +77,9 @@ public class HotelController {
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
         Page<HotelSearchResponseDto> result = hotelService.searchHotels(city, checkIn, checkOut, guests, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", result));
+        return ResponseEntity.ok()
+                .cacheControl(PUBLIC_SHORT_CACHE)
+                .body(new ApiResponse<>(200, "SUCCESS", result));
     }
 
     // FR-07: Lọc khách sạn
@@ -95,7 +109,9 @@ public class HotelController {
         }
 
         Page<HotelListItemDto> result = hotelService.filterHotels(filter, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(200, "SUCCESS", result));
+        return ResponseEntity.ok()
+                .cacheControl(PUBLIC_SHORT_CACHE)
+                .body(new ApiResponse<>(200, "SUCCESS", result));
     }
 
 
