@@ -265,13 +265,18 @@ public class PaymentServiceImpl implements PaymentService {
         vnp_Params.put("vnp_ReturnUrl", resolveReturnUrl(request));
         vnp_Params.put("vnp_IpAddr", getClientIp(request));
 
-        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
+        // Bắt buộc dùng múi giờ Việt Nam (GMT+7) cho cả Calendar và SimpleDateFormat.
+        // Lưu ý: Server Render chạy múi giờ UTC, nếu formatter không set TimeZone sẽ format theo UTC
+        // khiến vnp_ExpireDate bị lùi 7 tiếng so với giờ VNPay -> VNPay báo "Giao dịch đã quá thời gian chờ thanh toán".
+        TimeZone vnTimeZone = TimeZone.getTimeZone("Asia/Ho_Chi_Minh");
+        Calendar cld = Calendar.getInstance(vnTimeZone);
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+        formatter.setTimeZone(vnTimeZone);
         String vnp_CreateDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
 
-        // Hạn thanh toán 15 phút
-        cld.add(Calendar.MINUTE, 15);
+        // Hạn thanh toán 30 phút (đồng bộ với thời hạn 30 phút hủy đơn của hệ thống)
+        cld.add(Calendar.MINUTE, 30);
         String vnp_ExpireDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
 
